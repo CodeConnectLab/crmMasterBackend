@@ -1,0 +1,18 @@
+{
+    "create_survey": "can create/update survey",
+    "create_user": "can create/update user",
+    "create_support": "can create/update support",
+    "create_policy": "can create/update policy",
+    "create_content": "can create/update content",
+    "create_subscription": "can create/update subscription",
+    "can_approve_user_post": "can approve user post",
+
+    "delete_survey": "can delete survey",
+    "delete_user": "can delete user",
+    "delete_support": "can delete support",
+    "delete_policy": "can delete policy",
+    "cdelete_content": "can delete content",
+
+    "read_user": "can read user",
+    "read_support": "can read support"
+}
