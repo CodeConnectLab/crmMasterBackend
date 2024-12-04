@@ -18,6 +18,10 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    - name: Verify Directory Structure
+      run: ls -la
+      working-directory: .
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
@@ -30,15 +34,16 @@ jobs:
 
     - name: Set Up Environment Variables
       run: |
-        touch crmmasterBackend/.env
-        echo "${{ secrets.PROD }}" > crmmasterBackend/.env
+        touch .env
+        echo "${{ secrets.PROD }}" > .env
+      working-directory: crmmasterBackend
 
     - name: Start or Restart PM2 Process
       run: |
         pm2 describe Backend || pm2 start server/app.js --name Backend
         pm2 restart Backend
+      working-directory: crmmasterBackend
 
     - name: Debug PM2 Processes
       run: pm2 list
 
-   
