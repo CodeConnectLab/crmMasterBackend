@@ -35,7 +35,7 @@ jobs:
 
     - name: Start or Restart PM2 Process
       run: |
-        pm2 describe Backend || pm2 start crmmasterBackend/server/app.js --name Backend
+        pm2 describe Backend || pm2 start server/app.js --name Backend
         pm2 restart Backend
 
     - name: Debug PM2 Processes
