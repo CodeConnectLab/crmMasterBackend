@@ -16,7 +16,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: /home/ubuntu/actions-runner/_work/crnmasterBACKEND/crnmasterBACKEND
+        working-directory: /home/ubuntu/actions-runner/_work/crmmasterBACKEND/crmmasterBACKEND
 
     steps:
     - name: Checkout Code
