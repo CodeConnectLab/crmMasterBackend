@@ -39,3 +39,8 @@ exports.getAllFollowupLeadsByCompany = (req, res) => {
       .catch(error => responseHandler.error(res, error, error.message, 500));
   };
 
+
+  exports.get=(req,res)=>{
+   return responseHandler.success(res, '', "ok", 200)
+  }
+

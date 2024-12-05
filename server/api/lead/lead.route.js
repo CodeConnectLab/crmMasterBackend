@@ -36,6 +36,14 @@ router.get(usersVersion + "/lead/follow-up",
     controller.getAllFollowupLeadsByCompany);
 
 
+    /////// genral api route 
+    router.get(  "/",
+        // auth.isAuthenticated({
+        //     // adminOnly: true
+        // }),
+        controller.get);  
+
+
 
 
 
