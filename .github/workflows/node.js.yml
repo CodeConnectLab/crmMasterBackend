@@ -50,4 +50,4 @@ jobs:
     - name: Debug PM2 Processes
       run: |
         pm2 list
-        pm2 logs Backend --lines 50
+        pm2 logs Backend --lines 10
