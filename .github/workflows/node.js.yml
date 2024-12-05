@@ -1,6 +1,7 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
+
 name: Node.js CI
 
 on:
@@ -13,20 +14,14 @@ jobs:
     strategy:
       matrix:
         node-version: [20.x]
-
     defaults:
       run:
         working-directory: /home/ubuntu/actions-runner/_work/crmmasterBACKEND/crmmasterBACKEND
-
+        
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Verify Directory Structure
-      run: |
-        pwd
-        ls -la
-      
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
@@ -35,16 +30,24 @@ jobs:
 
     - name: Install Dependencies
       run: npm ci
-        
+
     - name: Set Up Environment Variables
       run: |
-        touch .env
         echo "${{ secrets.PROD }}" > .env
-        
+
     - name: Start or Restart PM2 Process
       run: |
-        pm2 describe Backend || pm2 start service/app.js --name Backend
-        pm2 restart Backend
+        if pm2 list | grep -q "Backend"; then
+          echo "Stopping existing process..."
+          pm2 stop Backend
+          pm2 delete Backend
+        fi
+        
+        echo "Starting new process..."
+        pm2 start ecosystem.config.js
+        pm2 save
         
     - name: Debug PM2 Processes
-      run: pm2 list
+      run: |
+        pm2 list
+    
