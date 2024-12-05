@@ -1,5 +1,5 @@
 const Joi = require('joi');
-
+const  mongoose  = require('mongoose');
 const leadBaseSchema = {
   firstName: Joi.string()
     .trim()
@@ -171,11 +171,11 @@ const validationOptions = {
   allowUnknown: true,   // Allows object to contain unknown keys
   stripUnknown: true    // Removes unknown keys from validated data
 };
-
+  // create lead validation
 exports.validateLead = {
   body: Joi.object(leadBaseSchema)
 };
-
+  ////////update lead validation
 exports.validateUpdateLead = {
   body: Joi.object({
     ...leadBaseSchema,
@@ -189,6 +189,48 @@ exports.validateUpdateLead = {
       })
   })
 };
+
+/////  comented by lead validationn lead history
+exports.validateLeadHistory = (data) => {
+  const schema = Joi.object({
+    status: Joi.string()
+      .required()
+      .custom((value, helpers) => {
+        if (!mongoose.Types.ObjectId.isValid(value)) {
+          return helpers.error('Invalid status ID format');
+        }
+        return value;
+      })
+      .messages({
+        'any.required': 'Status is required',
+        'string.empty': 'Status cannot be empty'
+      }),
+      
+    // followupDate: Joi.string()
+    //   .required()
+    //   .isoDate()
+    //   .messages({
+    //     'string.isoDate': 'Follow-up date must be a valid date'
+    //   }),
+
+      followUpDate: Joi.date()
+      .required()
+      .optional()
+      .messages({
+        'date.base': 'Follow up date must be a valid date'
+      }),
+
+    comment: Joi.string()
+      .required()
+      .max(1000)
+      .messages({
+        'string.max': 'Comment cannot exceed 1000 characters'
+      })
+  });
+
+  return schema.validate(data);
+};
+
 
 // Helper function to validate phone numbers
 exports.validatePhoneNumber = (phone) => {

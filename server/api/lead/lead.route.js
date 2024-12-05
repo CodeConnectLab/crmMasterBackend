@@ -36,12 +36,28 @@ router.get(usersVersion + "/lead/follow-up",
     controller.getAllFollowupLeadsByCompany);
 
 
-    /////// genral api route 
-    router.get(  "/",
-        // auth.isAuthenticated({
-        //     // adminOnly: true
-        // }),
-        controller.get);  
+///////////  lead update 
+router.put(usersVersion + "/lead/:id",
+    auth.isAuthenticated({
+        // adminOnly: true
+    }),
+    joiValidate(validationInputs.validateUpdateLead, options),
+    controller.getLeadUpdate);
+
+    //////////  get lead details
+    router.get(usersVersion + "/lead/:id",
+        auth.isAuthenticated({
+            // adminOnly: true
+        }),
+       // joiValidate(validationInputs.validateUpdateLead, options),
+        controller.getLeadDetails);
+
+/////// genral api route 
+router.get("/",
+    // auth.isAuthenticated({
+    //     // adminOnly: true
+    // }),
+    controller.get);
 
 
 
