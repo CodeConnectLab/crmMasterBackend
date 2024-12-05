@@ -14,19 +14,10 @@ jobs:
       matrix:
         node-version: [20.x]
 
-    defaults:
-      run:
-        working-directory: /home/ubuntu/actions-runner/_work/crmmasterBACKEND/crmmasterBACKEND
-
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Verify Directory Structure
-      run: |
-        pwd
-        ls -la
-      
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
@@ -35,16 +26,20 @@ jobs:
 
     - name: Install Dependencies
       run: npm ci
-        
+
     - name: Set Up Environment Variables
       run: |
-        touch .env
-        echo "${{ secrets.PROD }}" > .env
-        
+        echo "PORT=9000" >> .env
+        echo "HOST=http://13.203.123.47:9000" >> .env
+        echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> .env
+        echo "SESSION_SECRET=${{ secrets.SESSION_SECRET }}" >> .env
+        echo "REFRESH_SECRET=${{ secrets.REFRESH_SECRET }}" >> .env
+        echo "NODE_ENV=production" >> .env
+
     - name: Start or Restart PM2 Process
       run: |
-        pm2 describe Backend || pm2 start service/app.js --name Backend
+        pm2 describe Backend || pm2 start ecosystem.config.js
         pm2 restart Backend
-        
+
     - name: Debug PM2 Processes
       run: pm2 list
