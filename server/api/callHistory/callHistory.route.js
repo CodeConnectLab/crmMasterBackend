@@ -21,6 +21,17 @@ router.post(usersVersion + "/call-history",
   joiValidate(validationInputs.validateCallHistory, options),
   controller.saveCallHistory);
 
+///////// Call report 
+router.post(usersVersion+ "/call-report",
+   auth.isAuthenticated({
+   }),
+   joiValidate(validationInputs.validateCallReport, options),
+   controller.callReport)
+
+
+
+
+
 
 
 

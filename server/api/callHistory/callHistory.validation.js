@@ -128,9 +128,12 @@ const callHistorySchema = Joi.object({
     })
 });
 
+
+
 exports.validateCallHistory = {
   body: Joi.array().items(callHistorySchema).required().messages({
     'array.base': 'Input must be an array',
     'array.empty': 'Call history array cannot be empty'
   })
 };
+
