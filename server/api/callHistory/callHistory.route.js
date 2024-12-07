@@ -29,12 +29,6 @@ router.post(usersVersion+ "/call-report",
    controller.callReport)
 
 
-   ///////// Call report list 
-// router.post(usersVersion+ "/call-report-list",
-//   auth.isAuthenticated({
-//   }),
-//   //joiValidate(validationInputs.validateCallReport, options),
-//   controller.callReportlist)
 
 
 
