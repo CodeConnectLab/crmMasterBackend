@@ -38,6 +38,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      # Step 4: Upgrade npm to the latest version
+      - name: Upgrade npm
+        run: npm install -g npm@latest
 
       # Step 5: Install dependencies
       - name: Install Dependencies
