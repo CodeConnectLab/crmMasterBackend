@@ -72,13 +72,13 @@ exports.callReport = async (data, user) => {
     try {
         const { userId, startDate, endDate } = data;
         /////// first call report get function
-        if(userId){
-            let getcallreport1= await getcallreport(userId, startDate, endDate, user);
-     
-            let getcallreportlist1= await getcallreportlist(startDate, endDate, user);
-          return {...getcallreport1 ,...getcallreportlist1}
+        if (userId) {
+            let getcallreport1 = await getcallreport(userId, startDate, endDate, user);
+
+            let getcallreportlist1 = await getcallreportlist(startDate, endDate, user);
+            return { ...getcallreport1, ...getcallreportlist1 }
         }
-            return await getcallreportlist(startDate, endDate, user);
+        return await getcallreportlist(startDate, endDate, user);
     } catch (error) {
         return Promise.reject({
             success: false,
@@ -145,33 +145,33 @@ async function getcallreport(userId, startDate, endDate, user) {
     return response = {
         summary: {
             callType: [
-                 {
-                    calltype:'incoming',
+                {
+                    calltype: 'incoming',
                     calls: summary.incoming.length,
                     duration: formatDuration(summary.incoming.reduce((acc, call) => acc + (call.duration || 0), 0))
                 },
-                 {
-                    calltype:'outgoing',
+                {
+                    calltype: 'outgoing',
                     calls: summary.outgoing.length,
                     duration: formatDuration(summary.outgoing.reduce((acc, call) => acc + (call.duration || 0), 0))
                 },
-                 {
-                    calltype:'missed',
+                {
+                    calltype: 'missed',
                     calls: summary.missed.length,
                     duration: formatDuration(summary.missed.reduce((acc, call) => acc + (call.duration || 0), 0))
                 },
-                 {
-                    calltype:'rejected',
+                {
+                    calltype: 'rejected',
                     calls: summary.rejected.length,
                     duration: formatDuration(summary.rejected.reduce((acc, call) => acc + (call.duration || 0), 0))
                 },
-                 {
-                    calltype:'unknown',
+                {
+                    calltype: 'unknown',
                     calls: summary.unknown.length,
                     duration: formatDuration(summary.unknown.reduce((acc, call) => acc + (call.duration || 0), 0))
                 },
                 {
-                    calltype:'total',
+                    calltype: 'total',
                     calls: calls.length,
                     duration: formatDuration(totalDuration)
                 }
@@ -221,12 +221,10 @@ async function getcallreportlist(startDate, endDate, user) {
     let userQuery = {
         companyId: user.companyId
     };
-
     // If user is not admin, only show their own data
     if (user.role !== 'Super Admin') {
         userQuery._id = user._id;
     }
-
     // Get all relevant users
     const users = await UserModel.find(userQuery).select('_id name role email phone');
 
@@ -252,6 +250,8 @@ async function getcallreportlist(startDate, endDate, user) {
             : 0;
 
         return {
+            employeeId: 'COM0' + index + 1,
+            userId: employee._id,
             user: employee.name,
             email: employee.email,
             phone: employee.phone,
@@ -280,13 +280,13 @@ async function getcallreportlist(startDate, endDate, user) {
 
 ///////////  sela report 
 
-exports.productSaleReport=async(data,user)=>{
-    const { userId, startDate, endDate , } = data;
-       try {
-        
-       } catch (error) {
-        
-       }
+exports.productSaleReport = async (data, user) => {
+    const { userId, startDate, endDate, } = data;
+    try {
+
+    } catch (error) {
+
+    }
 }
 
 
