@@ -137,3 +137,12 @@ exports.validateCallHistory = {
   })
 };
 
+
+
+
+exports.validateProductSaleReport={
+    body:Joi.object({
+      
+    }),
+};
+

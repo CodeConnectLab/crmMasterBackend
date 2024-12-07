@@ -21,12 +21,27 @@ router.post(usersVersion + "/call-history",
   joiValidate(validationInputs.validateCallHistory, options),
   controller.saveCallHistory);
 
+
+
+
 ///////// Call report 
 router.post(usersVersion+ "/call-report",
    auth.isAuthenticated({
    }),
    //joiValidate(validationInputs.validateCallReport, options),
    controller.callReport)
+
+///////// product sale report
+router.post(usersVersion+ "/product-sale-report",
+  auth.isAuthenticated({
+
+  }),
+  joiValidate(validationInputs.validateProductSaleReport, options),
+  controller.productSaleReport)
+
+
+
+
 
 
 

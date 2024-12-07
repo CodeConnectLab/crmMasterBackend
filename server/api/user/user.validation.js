@@ -10,7 +10,7 @@ exports.validateRegistration={
     companyData: Joi.object({
       name: Joi.string().required().min(2).max(100),
       industry: Joi.string().optional(),
-      address: Joi.string().optional(),
+     /// address: Joi.string().optional(),
       phone: Joi.string().optional(),
       email: Joi.string().email().optional(),
       website: Joi.string().optional(),

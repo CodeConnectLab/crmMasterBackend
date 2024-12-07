@@ -1,4 +1,5 @@
 
+const { error } = require("../../config/responseHandler");
 const service = require("./callHistory.service")
 
 exports.saveCallHistory = (req, res, next) => {
@@ -11,4 +12,10 @@ exports.callReport=(req,res,next)=>{
     return service.callReport(req.body, req.user)
     .then(result => responseHandler.success(res, result, "Call report get successfully!", 200))
     .catch(error => responseHandler.error(res, error, error.message, 500));
+}
+
+exports.productSaleReport=(req, res, next)=>{
+    return service.productSaleReport(req.body, req.user)
+    .then(result => responseHandler.success(res, result, "Get Report Successfully!", 200))
+    .catch(error=>  responseHandler.error(res, error, error.message, 500));
 }
