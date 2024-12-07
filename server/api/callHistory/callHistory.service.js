@@ -1,6 +1,8 @@
 
 const callHistoryModel= require('./callHistory.model')
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
+const { report } = require('./callHistory.route');
+const UserModel=require('../user/user.model');
 exports.saveCallHistory = async (data, user) => {
     try {
       const callRecords = await Promise.all(
@@ -65,23 +67,51 @@ const formatDuration = (seconds) => {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
 };
 
+
 exports.callReport = async (data,user) => {
+       
     try {
         const { userId, startDate, endDate } = data;
-        // Base query
-        const query = {
+
+
+   /////// first call report get function
+   if (userId) {
+    return await getcallreport(userId, startDate, endDate,user);
+     }
+     return await getcallreportlist(startDate, endDate,user);
+
+
+   
+       
+        
+
+    } catch (error) { 
+      return Promise.reject({
+        success: false,
+        message: error.message || 'Error saving call history',
+        error: error
+      });
+    }
+};
+
+
+async function getcallreport(userId, startDate, endDate,user) {
+
+     // Convert start date to beginning of day (00:00:00)
+     const start = new Date(startDate);
+     start.setUTCHours(0, 0, 0, 0);
+
+     // Convert end date to end of day (23:59:59.999)
+     const end = new Date(endDate);
+     end.setUTCHours(23, 59, 59, 999);
+
+              // Base query
+         const query = {
             userId: new mongoose.Types.ObjectId(userId),
             companyId: user.companyId
         };
 
-        // Convert start date to beginning of day (00:00:00)
-        const start = new Date(startDate);
-        start.setUTCHours(0, 0, 0, 0);
-
-        // Convert end date to end of day (23:59:59.999)
-        const end = new Date(endDate);
-        end.setUTCHours(23, 59, 59, 999);
-
+       
         // Add date range if provided
         if (startDate && endDate) {
             query.timestamp = {
@@ -123,6 +153,7 @@ exports.callReport = async (data,user) => {
             : 0;
 
         return response = {
+       
             summary: {
                 callType: {
                     incoming: {
@@ -179,18 +210,92 @@ exports.callReport = async (data,user) => {
                     totalDays: calls.length ? 1 : 0 // This should be calculated based on date range
                 }
             }
+         
+            
         };
 
         
+}
 
-    } catch (error) { 
-      return Promise.reject({
-        success: false,
-        message: error.message || 'Error saving call history',
-        error: error
-      });
-    }
-};
+async function getcallreportlist(startDate, endDate,user) {
+     // Convert dates
+     const start = new Date(startDate);
+     start.setUTCHours(0, 0, 0, 0);
+     
+     const end = new Date(endDate);
+     end.setUTCHours(23, 59, 59, 999);
+
+     // Base query for company
+     let userQuery = {
+         companyId: user.companyId
+     };
+
+     // If user is not admin, only show their own data
+     if (user.role !== 'Super Admin') {
+         userQuery._id = user._id;
+     }
+
+     // Get all relevant users
+     const users = await UserModel.find(userQuery).select('_id name role email phone');
+
+     // Get call statistics for each user
+     const employeeList = await Promise.all(users.map(async (employee, index) => {
+         const callQuery = {
+             userId: employee._id,
+             companyId: user.companyId,
+             timestamp: {
+                 $gte: start,
+                 $lte: end
+             }
+         };
+
+         const calls = await callHistoryModel.find(callQuery);
+
+          // Calculate statistics
+          const totalCalls = calls.length;
+          const totalDuration = calls.reduce((acc, call) => acc + (call.duration || 0), 0);
+          const connectedCalls = calls.filter(call => call.duration > 0);
+          const avgDuration = connectedCalls.length > 0 
+              ? connectedCalls.reduce((acc, call) => acc + call.duration, 0) / connectedCalls.length 
+              : 0;
+
+          return {
+              srNo: index + 1,
+              userId: employee._id,
+              user: employee.name,
+              email: employee.email,
+              phone: employee.phone,
+              role: employee.role,
+              highestCalls: totalCalls,
+              totalDuration: formatDuration(totalDuration),
+              averageCallDuration: formatDuration(Math.floor(avgDuration)),
+              callDetails: {
+                  incoming: calls.filter(call => call.callType === 'INCOMING').length,
+                  outgoing: calls.filter(call => call.callType === 'OUTGOING').length,
+                  missed: calls.filter(call => call.callType === 'MISSED').length,
+                  rejected: calls.filter(call => call.callType === 'REJECTED').length,
+                  unknown: calls.filter(call => call.callType === 'UNKNOWN').length
+              }
+          };
+      }));
+
+      // Sort by highest calls
+      employeeList.sort((a, b) => b.highestCalls - a.highestCalls);
+
+      return {
+          success: true,
+          data: {
+              dateRange: {
+                  startDate: start,
+                  endDate: end
+              },
+              employeeList
+          }
+      };
+}
+
+//// employees list call report
+// exports.callReportList= 
 
 
 
