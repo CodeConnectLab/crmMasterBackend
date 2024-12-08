@@ -87,7 +87,7 @@ exports.callReport = async (data, user) => {
         });
     }
 };
-
+  
 async function getcallreport(userId, startDate, endDate, user) {
     // Convert start date to beginning of day (00:00:00)
     const start = new Date(startDate);
