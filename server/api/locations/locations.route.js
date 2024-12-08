@@ -16,7 +16,7 @@ router.get(usersVersion + "/locations/countries",
 
 router.get(usersVersion + "/locations/states/:id",
     auth.isAuthenticated({
-    }),
+    }), 
     controller.getAllState);
 
 router.get(usersVersion + "/lead-types",
