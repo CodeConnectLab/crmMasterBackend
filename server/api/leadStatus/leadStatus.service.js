@@ -240,7 +240,7 @@ exports.toggleLeadStatus = async (contentId, user) => {
       const currentDoc = await leadStatusModel.findOne({
         _id: contentId,
         companyId: user.companyId,
-        deleted: false
+        //deleted: false
       });
   
       if (!currentDoc) {
