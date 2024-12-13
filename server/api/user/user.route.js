@@ -11,7 +11,7 @@ const express = require('express'),
   options = {
     wantResponse: true,
   };
-
+  const { validateCompanyUpdate } = require('../company/company.validation');
 // router.put(
 //   usersVersion + "/set-password",
 //   auth.isAuthenticated({
@@ -52,6 +52,15 @@ router.put(
 )
 
 
+///////  company detail update 
+router.put(usersVersion + "/updateCompanyDetails",
+  auth.isAuthenticated({
+    adminOnly: true
+  }),
+  validateCompanyUpdate,
+  controller.updateCompanyDetails);
+
+
 
 
 
@@ -65,11 +74,10 @@ router.put(
 //   joiValidate(validationInputs.userActivites, options),
 //   controller.createUser);
 
-// router.get(usersVersion + "/user",
-//   auth.isAuthenticated({
-//     adminandsupport: true
-//   }),
-//   controller.listUsers);
+router.get(usersVersion + "/users",
+  auth.isAuthenticated({
+  }),
+  controller.listUsers);
 
 // router.get(usersVersion + "/support",
 //   auth.isAuthenticated({

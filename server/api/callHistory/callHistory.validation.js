@@ -140,6 +140,24 @@ exports.validateCallHistory = {
 
 
 
+
+exports.validateGetCallList = {
+  body: Joi.object({
+    startDate: Joi.date().required().messages({
+      'date.base': 'From date must be a valid date'
+    }),
+    endDate: Joi.date().required().messages({
+      'date.base': 'To date must be a valid date',
+      'date.greater': 'To date must be greater than from date'
+    }),
+    userId: Joi.string().trim().required().messages({
+      'string.base': 'User ID must be a string',
+      'string.empty': 'User ID cannot be empty'
+    })
+  })
+};
+
+
 exports.validateProductSaleReport={
     body:Joi.object({
       

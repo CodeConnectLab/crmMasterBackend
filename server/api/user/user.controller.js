@@ -48,11 +48,18 @@ exports.updateUser = (req, res, next) => {
         .catch(error => responseHandler.error(res, error, error.message, 500));
 }
 
-// exports.listUsers = (req, res, next) => {
-//     return service.listUsers({ role: USER_ROLES.USER }, req.user)
-//         .then(result => responseHandler.success(res, result, "User fetch successful!", 200))
-//         .catch(error => responseHandler.error(res, error, error.message, 500));
-// }
+exports.listUsers = (req, res, next) => {
+    return service.listUsers({}, req.user)
+        .then(result => responseHandler.success(res, result, "User fetch successful!", 200))
+        .catch(error => responseHandler.error(res, error, error.message, 500));
+}
+
+exports.updateCompanyDetails = (req, res, next) => {
+  return service.updateCompanyDetails(req.body,req.user)
+      .then(result => responseHandler.success(res, result, "User update successful!", 200))
+      .catch(error => responseHandler.error(res, error, error.message, 500));
+}
+
 
 // exports.listSupport = (req, res, next) => {
 //     return service.listUsers({ role: USER_ROLES.SUPPORT }, req.user)

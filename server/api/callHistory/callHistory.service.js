@@ -278,6 +278,94 @@ async function getcallreportlist(startDate, endDate, user) {
 }
 
 
+
+//////////////  get call list 
+exports.getCallList = async ({ startDate, endDate, userId }, { page = 1, limit = 10, search }, user) => {
+    try {
+      // Build base query
+      const query = {
+        companyId: user.companyId
+      };
+  
+      // Add userId filter if provided or if user is not admin
+      if (userId) {
+        query.userId = userId;
+      } 
+   
+
+       // Convert start date to beginning of day (00:00:00)
+    const start = new Date(startDate);
+    start.setUTCHours(0, 0, 0, 0);
+    // Convert end date to end of day (23:59:59.999)
+    const end = new Date(endDate);
+    end.setUTCHours(23, 59, 59, 999);
+    // Base query
+ 
+    // Add date range if provided
+    if (startDate && endDate) {
+        query.timestamp = {
+            $gte: start,
+            $lte: end
+        };
+    }
+  
+     
+  
+      // Add search filter
+      if (search) {
+        query.$or = [
+          { callerName: new RegExp(search, 'i') },
+          { phoneNumber: new RegExp(search, 'i') }
+        ];
+      }
+  
+      // Calculate pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+  
+      // Fetch data and count in parallel
+      const [calls, total] = await Promise.all([
+        callHistoryModel.find(query)
+          .sort({ timestamp: -1 })
+          .skip(skip)
+          .limit(parseInt(limit))
+          .lean(),
+          callHistoryModel.countDocuments(query)
+      ]);
+  
+      // Format call data
+      const formattedCalls = calls.map((call, index) => ({
+        clientName: call.callerName || call.phoneNumber,
+        mobileNo: call.phoneNumber,
+        callDateTime: call.dateTime,
+        duration: formatDuration1(call.duration),
+        callType: call.callType,
+        rawType: call.rawType
+      }));
+  
+      return {
+        calls: formattedCalls,
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          pages: Math.ceil(total / limit)
+        }
+      };
+  
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  };
+  
+  // Helper function
+  const formatDuration1 = (seconds) => {
+    if (!seconds) return '0h 0m 0s';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    return `${hours}h ${minutes}m ${remainingSeconds}s`;
+  };
+
 ///////////  sela report 
 
 exports.productSaleReport = async (data, user) => {

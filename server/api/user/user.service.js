@@ -18,6 +18,7 @@ const fs = require('fs')
 const AWS = require('aws-sdk')
 const { getPresignedUrl } = require('../../helpers/aws-s3.helper')
 const { error } = require('console')
+const userRoles = require('../../config/constants/userRoles')
 ///
 
 /**
@@ -203,6 +204,8 @@ exports.updateOne = async (
 
 
 
+
+
 exports.updateProfile = async (userId, updateObj) => {
   try {
     let user = await userModel.findById(userId)
@@ -228,25 +231,119 @@ exports.updateProfile = async (userId, updateObj) => {
   }
 }
 
-// exports.listUsers = async ({ role }, user) => {
-//   return UserModel.find(
-//     {
-//       role
-//     },
-//     {
-//       firstName: 1,
-//       lastName: 1,
-//       phone: 1,
-//       isActive: 1,
-//       isPrime: 1,
-//       role: 1,
-//       email: 1,
-//       deleted: 1,
-//       profile: 1,
-//       bmi:1,
-//     }
-//   )
-// }
+
+//////// update company detail
+exports.updateCompanyDetails = async (updateData, user) => {
+  try {
+    // Find existing company
+    const existingCompany = await companyModel.findOne({
+      _id: user.companyId,
+      deleted: false
+    });
+
+    if (!existingCompany) {
+      const error = new Error('Company not found');
+      error.status = 404;
+      return Promise.reject(error);
+    }
+
+    // Prepare update data
+    const finalUpdateData = {
+      ...updateData,
+      settings: updateData.settings ? {
+        dateFormat: updateData.settings.dateFormat || existingCompany.settings.dateFormat,
+        timezone: updateData.settings.timezone || existingCompany.settings.timezone,
+        currency: updateData.settings.currency || existingCompany.settings.currency,
+        language: updateData.settings.language || existingCompany.settings.language,
+        fiscalYearStart: updateData.settings.fiscalYearStart || existingCompany.settings.fiscalYearStart
+      } : existingCompany.settings,
+      subscription: updateData.subscription ? {
+        plan: updateData.subscription.plan || existingCompany.subscription.plan,
+        startDate: updateData.subscription.startDate || existingCompany.subscription.startDate,
+        endDate: updateData.subscription.endDate || existingCompany.subscription.endDate,
+        status: updateData.subscription.status || existingCompany.subscription.status,
+        features: updateData.subscription.features || existingCompany.subscription.features
+      } : existingCompany.subscription,
+      primaryContact: updateData.primaryContact ? {
+        name: updateData.primaryContact.name,
+        email: updateData.primaryContact.email,
+        phone: updateData.primaryContact.phone
+      } : existingCompany.primaryContact,
+      updatedBy: user._id,
+      updatedAt: new Date()
+    };
+
+    // Remove undefined fields
+    Object.keys(finalUpdateData).forEach(key => 
+      finalUpdateData[key] === undefined && delete finalUpdateData[key]
+    );
+
+    // Update company
+    return await companyModel.findOneAndUpdate(
+      {
+        _id: user.companyId,
+        deleted: false
+      },
+      {
+        $set: finalUpdateData
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+  } catch (error) {
+    if (error.isJoi) {
+      error.message = error.details[0].message;
+    }
+    return Promise.reject(error);
+  }
+};
+
+exports.listUsers = async ({ }, user) => {
+  if (user.role == userRoles.SUPER_ADMIN) {
+    return UserModel.find(
+      {
+        companyId:user.companyId
+      },  // Empty filter to get all users                "_id": "67543db20b51b00959c6eb3b",
+      {
+        name: 1,
+        email: 1,
+        role: 1,
+        companyId: 1,
+        phone: 1,
+        isEmailVerified: 1,
+        isMobileVerified: 1,
+        isActive: 1,
+        deleted: 1,
+        createdAt: 1,
+      }
+    );
+  }
+  if (user.role == userRoles.USER) {
+    return UserModel.find(
+      {
+        _id: user._id,  // Filter by the current user's ID
+        companyId:user.companyId
+      },
+      {
+        name: 1,
+        email: 1,
+        role: 1,
+        companyId: 1,
+        phone: 1,
+        isEmailVerified: 1,
+        isMobileVerified: 1,
+        isActive: 1,
+        deleted: 1,
+        createdAt: 1,
+      }
+    );
+  }
+
+};
+
 
 // exports.deleteUser = async (userID, user) => {
 //   /// update code for permission
@@ -361,3 +458,13 @@ exports.updateProfile = async (userId, updateObj) => {
 //     return Promise.reject(error)
 //   }
 // }
+
+
+
+
+
+
+
+
+
+

@@ -39,6 +39,14 @@ router.post(usersVersion+ "/product-sale-report",
   joiValidate(validationInputs.validateProductSaleReport, options),
   controller.productSaleReport)
 
+  /////////   get call detail by date and user
+  router.post(usersVersion+ "/getCallList",
+    auth.isAuthenticated({
+  
+    }),
+    joiValidate(validationInputs.validateGetCallList, options),
+    controller.getCallList)
+
 
 
 
