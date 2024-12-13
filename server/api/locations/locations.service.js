@@ -42,14 +42,14 @@ exports.getAllTypes = async ({},user) => {
       const statuses = await leadStatusModel.find({
         companyId: user.companyId,
         isActive: true,
-        deleted: false
+       // deleted: true
       }).select('name wonStatus lossStatus').lean();
   
       // Fetch all lead sources for the company
       const sources = await leadSourceModel.find({
         companyId: user.companyId,
         isActive: true,
-        deleted: false
+       // deleted: false
       }).select('name').lean();
   
       // Fetch users based on role
@@ -63,7 +63,7 @@ exports.getAllTypes = async ({},user) => {
       const productsServices = await productServiceModel.find({
         companyId: user.companyId,
         isActive: true,
-        deleted: false
+       // deleted: false
       }).select('name').lean();
 
       // Get countries list
