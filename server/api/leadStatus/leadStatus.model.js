@@ -5,7 +5,7 @@ const mongooseDelete = require('mongoose-delete');
 const LeadStatusSchema = new mongoose.Schema({
   displayName: {
     type: String,
-    required: [true, 'Display name is required'],
+   // required: [true, 'Display name is required'],
     trim: true
   },
   name: {

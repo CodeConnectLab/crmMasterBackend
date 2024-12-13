@@ -1,7 +1,7 @@
 const leadStatusModel = require('./leadStatus.model');
 
 
-exports.createLeadStatus = async ({ displayName, name, color }, user) => {
+exports.createLeadStatus = async ({  name, color }, user) => {
   try {
     if (!user?._id || !user?.companyId) {
       throw new Error('Invalid user data');
@@ -23,7 +23,6 @@ exports.createLeadStatus = async ({ displayName, name, color }, user) => {
     // Create new product service
     return leadStatusModel.create({
       name,
-      displayName,
       color,
       companyId: user.companyId,
       order: maxOrder ? maxOrder.order + 1 : 1,
