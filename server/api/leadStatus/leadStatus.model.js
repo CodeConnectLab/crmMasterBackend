@@ -38,6 +38,18 @@ const LeadStatusSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  sendNotification: {
+    type: Boolean,
+    default: false
+  },
+  wonStatus:{
+    type: Boolean,
+    default: false
+  },
+  lossStatus:{
+    type: Boolean,
+    default: false
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

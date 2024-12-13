@@ -14,7 +14,12 @@ exports.validateLeadStatus={
         'any.required': 'Status name is required'
       }),
       color:Joi.string().optional(),
-      isActive: Joi.boolean().default(true)
+      isActive: Joi.boolean().default(true),
+      sendNotification: Joi.boolean().optional(),
+      wonStatus: Joi.boolean().optional(),
+      lossStatus: Joi.boolean().optional(),
+      showDashboard: Joi.boolean().optional(),
+      showFollowUp: Joi.boolean().optional()
     }),
 };
 

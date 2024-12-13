@@ -43,7 +43,7 @@ exports.getAllTypes = async ({},user) => {
         companyId: user.companyId,
         isActive: true,
         deleted: false
-      }).select('name').lean();
+      }).select('name wonStatus lossStatus').lean();
   
       // Fetch all lead sources for the company
       const sources = await leadSourceModel.find({
