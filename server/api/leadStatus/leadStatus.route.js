@@ -29,7 +29,7 @@ router.put(usersVersion + "/lead-status/:id",
     auth.isAuthenticated({
         adminOnly: true
     }),
-    joiValidate(validationInputs.validateLeadStatus, options),
+    joiValidate(validationInputs.validateUpdateLeadStatus, options),
     controller.updateLeadStatus);
 
 

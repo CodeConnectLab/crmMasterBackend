@@ -153,7 +153,7 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
           const duplicateProduct = await leadStatusModel.findOne({
             name,
             companyId: user.companyId,
-            _id: { $ne: contentId },
+            _id: { $ne: contentId }, //// not take this id
             deleted: false
           }).session(session);
   
@@ -167,7 +167,7 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
           await leadStatusModel.updateMany(
             {
               companyId: user.companyId,
-              _id: { $ne: contentId },
+              _id: { $ne: contentId },   //// not take this id
               wonStatus: true,
               deleted: false
             },
@@ -182,7 +182,7 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
           await leadStatusModel.updateMany(
             {
               companyId: user.companyId,
-              _id: { $ne: contentId },
+              _id: { $ne: contentId },  //// not take this id
               lossStatus: true,
               deleted: false
             },
