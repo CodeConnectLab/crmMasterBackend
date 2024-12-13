@@ -42,7 +42,7 @@ exports.getAllByCompany = async ({},user) => {
   
       return leadStatusModel.find({
         companyId: user.companyId,
-        deleted: false
+        //deleted: false
       })
       .sort('order')
       .lean();
