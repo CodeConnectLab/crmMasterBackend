@@ -102,6 +102,10 @@ const leadSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  comment: {
+    type: String,
+    trim: true,
+  },
   leadLostReasonId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'LostReason',
