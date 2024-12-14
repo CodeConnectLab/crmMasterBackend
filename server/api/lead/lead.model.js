@@ -78,7 +78,9 @@ const leadSchema = new mongoose.Schema({
     type: String
   },
   leadCost: {
-    type: Number
+    type: Number,
+    default: 0,
+    trim: true,
   },
   leadAddType: {
     type: String,
@@ -86,10 +88,24 @@ const leadSchema = new mongoose.Schema({
     default: 'Insert',
     enum: ['Insert', 'Import', 'ThirdParty']
   },
+  leadWonAmount: {
+    type: Number,
+    default: 0,
+    trim: true,
+  },
   addCalender: {
     type: Boolean,
     trim: true,
     default: false
+  },
+  calanderMassage: {
+    type: String,
+    trim: true,
+  },
+  leadLostReasonId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'LostReason',
+    required: false
   },
   createdAt: {
     type: Date,

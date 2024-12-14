@@ -4,7 +4,7 @@ const productServiceModel = require('../productService/productService.model');
 const leadStatusModel = require('../leadStatus/leadStatus.model');
 const leadSourceModel = require('../leadSources/leadSources.model');
 const userModel = require('../user/user.model');
-
+const leadLoseReasonModel= require('../lostReason/lostReason.model');
 
 exports.getAllCountry = async ({ }, user) => {
     try {
@@ -66,6 +66,14 @@ exports.getAllTypes = async ({},user) => {
        // deleted: false
       }).select('name').lean();
 
+
+      // Fetch all Lead Lose Reason for the company
+      const leadLoseReason = await leadLoseReasonModel.find({
+        companyId: user.companyId,
+        isActive: true,
+       // deleted: false
+      }).select('name').lean();
+
       // Get countries list
       const Countr = Country.getAllCountries();
       const countries = Countr.map(country => ({
@@ -78,6 +86,7 @@ exports.getAllTypes = async ({},user) => {
         sources,
         agents,
         productsServices,
+        leadLoseReason,
         countries
       };
   
