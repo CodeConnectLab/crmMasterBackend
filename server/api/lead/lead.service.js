@@ -146,7 +146,7 @@ const getAllLeadByCompanyWithPagination = async (
                 },
                 {
                     path: 'leadStatus',
-                    select: '_id name',
+                    select: '_id name color',
                     model: 'LeadStatus'
                 }
             ])
