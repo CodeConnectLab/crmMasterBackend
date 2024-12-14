@@ -186,23 +186,24 @@ exports.validateUpdateLead = {
       .messages({
         'string.max': 'Comment cannot exceed 1000 characters',
         'string.base': 'Comment must be a string'
-      })
+      }),
+      addCalender:Joi.boolean().optional(),
+      leadWonAmount: Joi.number()
+      .allow(null)
+      .optional()
+      .messages({
+        'number.base': 'Lead cost must be a number'
+      }),
+      leadLostReasonId: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
+        .allow('')
+        .optional()
+        .messages({
+          'string.pattern.base': 'Invalid lead Loss ID format',
+          'string.base': 'Lead Loss must be a string'
+        }),
   }),
-  addCalender:Joi.boolean().optional(),
-  leadWonAmount: Joi.number()
-  .allow(null)
-  .optional()
-  .messages({
-    'number.base': 'Lead cost must be a number'
-  }),
-  leadLostReasonId: Joi.string()
-    .pattern(/^[0-9a-fA-F]{24}$/)
-    .allow('')
-    .optional()
-    .messages({
-      'string.pattern.base': 'Invalid lead Loss ID format',
-      'string.base': 'Lead Loss must be a string'
-    }),
+
 
 };
 
