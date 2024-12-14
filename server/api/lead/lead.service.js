@@ -354,13 +354,12 @@ exports.getLeadUpdate = async (id, data, user) => {
             followupDate: data.followUpDate,
             comment: data.comment || `Status updated to ${data.leadStatus}`,
         });
-
         // Update lead
         const updatedLead = await Lead.findByIdAndUpdate(
             id,
             {
                 ...data,
-                calendarMessage: data?.comment || null,
+                calanderMassage: data?.comment || null,
                 updatedBy: user._id,
                 updatedAt: new Date(),
             },
