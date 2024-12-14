@@ -72,7 +72,7 @@ exports.getAllTypes = async ({},user) => {
         companyId: user.companyId,
         isActive: true,
        // deleted: false
-      }).select('name').lean();
+      }).select('reason').lean();
 
       // Get countries list
       const Countr = Country.getAllCountries();
