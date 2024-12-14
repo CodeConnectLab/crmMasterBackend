@@ -360,6 +360,7 @@ exports.getLeadUpdate = async (id, data, user) => {
             id,
             {
                 ...data,
+                calendarMessage: data?.comment || null,
                 updatedBy: user._id,
                 updatedAt: new Date(),
             },
