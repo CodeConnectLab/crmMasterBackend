@@ -453,7 +453,7 @@ exports.getLeadDetails=async (leadId,{},user)=>{
             COMMENT: "$comment",
           },
         },
-        { $sort: { date: 1 } },
+        { $sort: { DATE: -1 } },
       ]);
       // Format the response
       const formattedResponse = {
