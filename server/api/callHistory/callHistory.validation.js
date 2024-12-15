@@ -160,7 +160,11 @@ exports.validateGetCallList = {
 
 exports.validateProductSaleReport={
     body:Joi.object({
-      
+      assignedAgent: Joi.string().optional(),
+      leadSource: Joi.string().optional(),
+      ProductService: Joi.string().optional(),
+      startDate: Joi.date().required(),
+      endDate: Joi.date().required().min(Joi.ref('startDate'))
     }),
 };
 

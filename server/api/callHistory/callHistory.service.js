@@ -3,6 +3,8 @@ const callHistoryModel = require('./callHistory.model')
 const mongoose = require('mongoose');
 const { report } = require('./callHistory.route');
 const UserModel = require('../user/user.model');
+const LeadModel=require('../lead/lead.model');
+const LeadStatusModel=require('../leadStatus/leadStatus.model');
 exports.saveCallHistory = async (data, user) => {
     try {
         const callRecords = await Promise.all(
@@ -367,16 +369,145 @@ exports.getCallList = async ({ startDate, endDate, userId }, { page = 1, limit =
   };
 
 ///////////  sela report 
-
 exports.productSaleReport = async (data, user) => {
-    const { userId, startDate, endDate, } = data;
+    const { assignedAgent, leadSource, ProductService, leadStatus, startDate, endDate } = data;
+    
     try {
+        // Convert start date to beginning of day (00:00:00)
+        const start = new Date(startDate);
+        start.setUTCHours(0, 0, 0, 0);
+
+        // Convert end date to end of day (23:59:59.999)
+        const end = new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
+
+        // Build base match criteria for aggregation
+        const matchCriteria = {
+            followUpDate: {
+                $gte: start,
+                $lte: end
+            }
+        };
+
+        // Add additional filters if provided  
+        if (leadSource) matchCriteria.leadSource = new mongoose.Types.ObjectId(leadSource);
+        if (ProductService) matchCriteria.productService = new mongoose.Types.ObjectId(ProductService);
+        if (assignedAgent) matchCriteria.assignedAgent = new mongoose.Types.ObjectId(assignedAgent);
+        if (leadStatus) matchCriteria.leadStatus = new mongoose.Types.ObjectId(leadStatus);
+
+        // First get all won status IDs
+        const wonStatusIds = await LeadStatusModel.find({ companyId: user.companyId, wonStatus: true }).distinct('_id');
+        
+        // Aggregate pipeline for sales report
+        const reportData = await LeadModel.aggregate([
+            {
+                $match: matchCriteria
+            },
+            // for user information
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'assignedAgent',
+                    foreignField: '_id',
+                    as: 'userInfo'
+                }
+            },
+            {
+                $unwind: '$userInfo'
+            },
+            // for Status information
+            {
+                $lookup: {
+                    from: 'leadstatuses',
+                    localField: 'leadStatus',
+                    foreignField: '_id',
+                    as: 'statusInfo'
+                }
+            },
+            {
+                $unwind: '$statusInfo'
+            },
+            // Group by assignedAgent
+            {
+                $group: {
+                    _id: '$assignedAgent',
+                    clientName: { $first: '$userInfo.name' },
+                    totalLeads: { $sum: 1 },
+                    wonLeads: {
+                        $sum: {
+                            $cond: [
+                                { $in: ['$leadStatus', wonStatusIds] },
+                                1,
+                                0
+                            ]
+                        }
+                    },
+                    totalAmount: {
+                        $sum: {
+                            $cond: [
+                                { 
+                                    $and: [
+                                        { $in: ['$leadStatus', wonStatusIds] },
+                                        { $ifNull: ['$leadWonAmount', false] }
+                                    ]
+                                },
+                                { $ifNull: ['$leadWonAmount', 0] },
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    clientName: 1,
+                    totalLeads: 1,
+                    wonLeads: 1,
+                    ratio: {
+                        $multiply: [
+                            {
+                                $cond: [
+                                    { $eq: ['$totalLeads', 0] },
+                                    0,
+                                    { $divide: ['$wonLeads', '$totalLeads'] }
+                                ]
+                            },
+                            100
+                        ]
+                    },
+                    totalAmount: { $ifNull: ['$totalAmount', 0] }
+                }
+            }
+        ]);
+
+        // Calculate summary statistics
+        const summary = reportData.reduce((acc, curr) => {
+            acc.total += curr.totalLeads;
+            acc.won += curr.wonLeads;
+            acc.amount += (curr.totalAmount || 0); // Handle null/undefined amounts
+            return acc;
+        }, { total: 0, won: 0, amount: 0 });
+
+        summary.ratio = summary.total ? ((summary.won / summary.total) * 100).toFixed(2) : '0.00';
+
+        // Format data for response
+        const formattedData = reportData.map((item, index) => ({
+            srNo: index + 1,
+            clientName: item.clientName,
+            leadPrice: item.totalAmount || 0 // Handle null/undefined amounts
+        }));
+
+        return {
+            summary,
+            leads: formattedData
+        };
 
     } catch (error) {
-
+        console.error('Product Sale Report Error:', error);
+        throw new Error('Failed to generate product sale report');
     }
-}
-
+};
 
 
 
