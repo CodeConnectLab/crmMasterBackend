@@ -386,7 +386,8 @@ exports.productSaleReport = async (data, user) => {
             followUpDate: {
                 $gte: start,
                 $lte: end
-            }
+            },
+            companyId: user.companyId,
         };
 
         // Add additional filters if provided  
