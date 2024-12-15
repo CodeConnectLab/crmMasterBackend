@@ -127,7 +127,7 @@ const getAllLeadByCompanyWithPagination = async (
         const leads = await Lead.find(query)
             .skip(skip)
             .limit(limit)
-            .sort({ followUpDate: -1 })
+            .sort({ followUpDate: 1 })
             .populate([
                 {
                     path: 'leadSource',
@@ -254,7 +254,7 @@ const getAllFollowupLeadByCompanyWithPagination = async (
         const leads = await Lead.find(query)
             .skip(skip)
             .limit(limit)
-            .sort({ followUpDate: -1 })
+            .sort({ followUpDate: 1 })
             .populate([
                 {
                     path: 'leadSource',
