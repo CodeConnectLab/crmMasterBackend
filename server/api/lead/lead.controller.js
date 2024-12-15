@@ -40,6 +40,30 @@ exports.getAllFollowupLeadsByCompany = (req, res) => {
   };
 
 
+///////////  get all importd lead
+exports.getAllImportedLeadsByCompany = (req, res) => {
+  const queryParams = {
+    page: req.query.page,
+    limit: req.query.limit,
+    search: req.query.search
+  };
+  return service.getAllImportedLeadsByCompany(queryParams, req.user)
+    .then(result =>responseHandler.success1(res, result, "Leads retrieved successfully!", 200))
+    .catch(error => responseHandler.error(res, error, error.message, 500));
+}
+
+///////////  get all out sourced lead
+exports.getAllOutsourcedLeadsByCompany = (req, res) => {
+  const queryParams = {
+    page: req.query.page,
+    limit: req.query.limit,
+    search: req.query.search
+  };
+  return service.getAllOutsourcedLeadsByCompany(queryParams, req.user)
+    .then(result =>responseHandler.success1(res, result, "Leads retrieved successfully!", 200))
+    .catch(error => responseHandler.error(res, error, error.message, 500));
+}
+
   /////////  update lead
   exports.getLeadUpdate = (req, res) => {
       return service.getLeadUpdate(req.params.id,req.body,req.user)

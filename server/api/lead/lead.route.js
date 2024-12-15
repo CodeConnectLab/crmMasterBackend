@@ -39,6 +39,25 @@ router.get(
   controller.getAllFollowupLeadsByCompany
 )
 
+
+////get all imported lead
+router.get(
+  usersVersion + '/lead/imported',
+  auth.isAuthenticated({
+    // adminOnly: true
+  }),
+  controller.getAllImportedLeadsByCompany
+)
+
+////get all outsourced lead
+router.get(
+  usersVersion + '/lead/outsourced',
+  auth.isAuthenticated({
+    // adminOnly: true
+  }),
+  controller.getAllOutsourcedLeadsByCompany
+)
+
 ///////////  lead update
 router.put(
   usersVersion + '/lead/:id',

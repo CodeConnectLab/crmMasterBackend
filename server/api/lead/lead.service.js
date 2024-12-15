@@ -291,6 +291,258 @@ const getAllFollowupLeadByCompanyWithPagination = async (
     }
 };
 
+////// get all imported lead
+exports.getAllImportedLeadsByCompany = async (params, user) => {
+    try {
+        if (!user?.companyId || !user?._id) {
+            throw new Error('Invalid user data');
+        }
+
+        const {
+            page = 1,
+            limit = 10,
+            search = ''
+        } = params;
+
+        const data = await getAllImportedLeadsByCompanyWithPagination(
+            user.role,
+            user.companyId,
+            user._id,
+            Number(page),
+            Number(limit),
+            {
+                search
+            }
+        );
+
+        return {
+            data: data.data,
+            options: {
+                pagination: {
+                    total: data.total,
+                    page: data.page,
+                    totalPages: data.totalPages,
+                    limit: data.limit
+                }
+            }
+        };
+    } catch (error) {
+        return Promise.reject(error);
+    }
+};
+
+const getAllImportedLeadsByCompanyWithPagination = async (
+    role,
+    companyId,
+    userId,
+    page,
+    limit,
+    filters
+) => {
+    try {
+        const skip = (page - 1) * limit;
+
+        // First, get all LeadStatus IDs where showFollowUp is true
+        const followupStatusIds = await LeadStatus
+            .find({
+                companyId,
+                showFollowUp: true,
+                // deleted: false,
+                // isActive: true,
+            })
+            .select("_id");
+        const statusIds = followupStatusIds.map((status) => status._id);
+        // Base query with company and deleted condition
+        let query = {
+            companyId: companyId,
+            leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
+            leadAddType:'Import'
+        };
+        // Add assignedAgent filter only for User role
+        if (role !== 'Super Admin') {
+            query.assignedAgent = userId;
+        } else {
+        }
+        // Search functionality
+        if (filters.search) {
+            query.$or = [
+                { firstName: { $regex: filters.search, $options: 'i' } },
+                { email: { $regex: filters.search, $options: 'i' } },
+                { contactNumber: { $regex: filters.search, $options: 'i' } },
+                { city: { $regex: filters.search, $options: 'i' } }
+            ];
+        }
+        // Get total count for pagination
+        const total = await Lead.countDocuments(query);
+        // Get paginated leads
+        const leads = await Lead.find(query)
+            .skip(skip)
+            .limit(limit)
+            .sort({ followUpDate: 1 })
+            .populate([
+                {
+                    path: 'leadSource',
+                    select: '_id name',
+                    model: 'LeadSource'
+                },
+                {
+                    path: 'productService',
+                    select: '_id name',
+                    model: 'ProductService'
+                },
+                {
+                    path: 'assignedAgent',
+                    select: '_id name',
+                    model: 'User'
+                },
+                {
+                    path: 'leadStatus',
+                    select: '_id name color',
+                    model: 'LeadStatus'
+                }
+            ])
+            .lean();
+        return {
+            data: leads,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        };
+    } catch (error) {
+        console.error('Error in getAllFollowupLeadByCompanyWithPagination:', error);
+        throw error;
+    }
+};
+
+/////// get all outsouce lead 
+exports.getAllOutsourcedLeadsByCompany = async (params, user) => {
+    try {
+        if (!user?.companyId || !user?._id) {
+            throw new Error('Invalid user data');
+        }
+
+        const {
+            page = 1,
+            limit = 10,
+            search = ''
+        } = params;
+
+        const data = await getAllOutsourcedLeadsByCompanyWithPagination(
+            user.role,
+            user.companyId,
+            user._id,
+            Number(page),
+            Number(limit),
+            {
+                search
+            }
+        );
+
+        return {
+            data: data.data,
+            options: {
+                pagination: {
+                    total: data.total,
+                    page: data.page,
+                    totalPages: data.totalPages,
+                    limit: data.limit
+                }
+            }
+        };
+    } catch (error) {
+        return Promise.reject(error);
+    }
+};
+
+const getAllOutsourcedLeadsByCompanyWithPagination = async (
+    role,
+    companyId,
+    userId,
+    page,
+    limit,
+    filters
+) => {
+    try {
+        const skip = (page - 1) * limit;
+
+        // First, get all LeadStatus IDs where showFollowUp is true
+        const followupStatusIds = await LeadStatus
+            .find({
+                companyId,
+                showFollowUp: true,
+                // deleted: false,
+                // isActive: true,
+            })
+            .select("_id");
+        const statusIds = followupStatusIds.map((status) => status._id);
+        // Base query with company and deleted condition
+        let query = {
+            companyId: companyId,
+            leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
+            leadAddType:'ThirdParty'
+        };
+        // Add assignedAgent filter only for User role
+        if (role !== 'Super Admin') {
+            query.assignedAgent = userId;
+        } else {
+        }
+        // Search functionality
+        if (filters.search) {
+            query.$or = [
+                { firstName: { $regex: filters.search, $options: 'i' } },
+                { email: { $regex: filters.search, $options: 'i' } },
+                { contactNumber: { $regex: filters.search, $options: 'i' } },
+                { city: { $regex: filters.search, $options: 'i' } }
+            ];
+        }
+        // Get total count for pagination
+        const total = await Lead.countDocuments(query);
+        // Get paginated leads
+        const leads = await Lead.find(query)
+            .skip(skip)
+            .limit(limit)
+            .sort({ followUpDate: 1 })
+            .populate([
+                {
+                    path: 'leadSource',
+                    select: '_id name',
+                    model: 'LeadSource'
+                },
+                {
+                    path: 'productService',
+                    select: '_id name',
+                    model: 'ProductService'
+                },
+                {
+                    path: 'assignedAgent',
+                    select: '_id name',
+                    model: 'User'
+                },
+                {
+                    path: 'leadStatus',
+                    select: '_id name color',
+                    model: 'LeadStatus'
+                }
+            ])
+            .lean();
+        return {
+            data: leads,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        };
+    } catch (error) {
+        console.error('Error in getAllFollowupLeadByCompanyWithPagination:', error);
+        throw error;
+    }
+};
+
+
+
+
+
 ///////////  Lead Update 
 exports.getLeadUpdate = async (id, data, user) => {
     try {
