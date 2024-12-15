@@ -52,7 +52,15 @@ exports.getAllLeadsByCompany = async (params, user) => {
         const {
             page = 1,
             limit = 10,
-            search = ''
+            search = '',
+            leadStatus,
+            assignedAgent,
+            leadSource,
+            productService,
+            startDate,
+            endDate,
+            sortBy = 'followUpDate',
+            sortOrder = 'asc'
         } = params;
 
         const data = await getAllLeadByCompanyWithPagination(
@@ -62,7 +70,15 @@ exports.getAllLeadsByCompany = async (params, user) => {
             Number(page),
             Number(limit),
             {
-                search
+                search,
+                leadStatus,
+                assignedAgent,
+                leadSource,
+                productService,
+                startDate,
+                endDate,
+                sortBy,
+                sortOrder
             }
         );
 
@@ -107,6 +123,34 @@ const getAllLeadByCompanyWithPagination = async (
         } else {
         }
 
+        // Add date range filter if provided
+        if (filters.startDate && filters.endDate) {
+            const start = new Date(filters.startDate);
+            start.setUTCHours(0, 0, 0, 0);
+            const end = new Date(filters.endDate);
+            end.setUTCHours(23, 59, 59, 999);
+
+            query.followUpDate = {
+                $gte: start,
+                $lte: end
+            };
+        }
+
+        // Add specific filters if provided
+        if (filters.leadStatus) {
+            console.log("filters.leadStatus",filters.leadStatus)
+            query.leadStatus =  new Types.ObjectId(filters.leadStatus);
+        }
+        if (filters.assignedAgent) {
+            query.assignedAgent =  new Types.ObjectId(filters.assignedAgent);
+        }
+        if (filters.leadSource) {
+            query.leadSource =  new Types.ObjectId(filters.leadSource);
+        }
+        if (filters.productService) {
+            query.productService =  new Types.ObjectId(filters.productService);
+        }
+
         // Search functionality
         if (filters.search) {
             query.$or = [
@@ -117,7 +161,9 @@ const getAllLeadByCompanyWithPagination = async (
             ];
         }
 
-
+        // Build sort object
+        const sortObj = {};
+        sortObj[filters.sortBy] = filters.sortOrder === 'desc' ? -1 : 1;
 
         // Get total count for pagination
         const total = await Lead.countDocuments(query);
@@ -127,7 +173,7 @@ const getAllLeadByCompanyWithPagination = async (
         const leads = await Lead.find(query)
             .skip(skip)
             .limit(limit)
-            .sort({ followUpDate: 1 })
+            .sort(sortObj)
             .populate([
                 {
                     path: 'leadSource',
@@ -178,7 +224,15 @@ exports.getAllFollowupLeadsByCompany = async (params, user) => {
         const {
             page = 1,
             limit = 10,
-            search = ''
+            search = '',
+            leadStatus,
+            assignedAgent,
+            leadSource,
+            productService,
+            startDate,
+            endDate,
+            sortBy = 'followUpDate',
+            sortOrder = 'asc'
         } = params;
 
         const data = await getAllFollowupLeadByCompanyWithPagination(
@@ -188,7 +242,15 @@ exports.getAllFollowupLeadsByCompany = async (params, user) => {
             Number(page),
             Number(limit),
             {
-                search
+                search,
+                leadStatus,
+                assignedAgent,
+                leadSource,
+                productService,
+                startDate,
+                endDate,
+                sortBy,
+                sortOrder
             }
         );
 
@@ -239,6 +301,36 @@ const getAllFollowupLeadByCompanyWithPagination = async (
             query.assignedAgent = userId;
         } else {
         }
+
+        
+        // Add date range filter if provided
+        if (filters.startDate && filters.endDate) {
+            const start = new Date(filters.startDate);
+            start.setUTCHours(0, 0, 0, 0);
+            const end = new Date(filters.endDate);
+            end.setUTCHours(23, 59, 59, 999);
+
+            query.followUpDate = {
+                $gte: start,
+                $lte: end
+            };
+        }
+
+        // Add specific filters if provided
+        if (filters.leadStatus) {
+            console.log("filters.leadStatus",filters.leadStatus)
+            query.leadStatus =  new Types.ObjectId(filters.leadStatus);
+        }
+        if (filters.assignedAgent) {
+            query.assignedAgent =  new Types.ObjectId(filters.assignedAgent);
+        }
+        if (filters.leadSource) {
+            query.leadSource =  new Types.ObjectId(filters.leadSource);
+        }
+        if (filters.productService) {
+            query.productService =  new Types.ObjectId(filters.productService);
+        }
+
         // Search functionality
         if (filters.search) {
             query.$or = [
@@ -248,13 +340,18 @@ const getAllFollowupLeadByCompanyWithPagination = async (
                 { city: { $regex: filters.search, $options: 'i' } }
             ];
         }
+
+         // Build sort object
+         const sortObj = {};
+         sortObj[filters.sortBy] = filters.sortOrder === 'desc' ? -1 : 1;
+
         // Get total count for pagination
         const total = await Lead.countDocuments(query);
         // Get paginated leads
         const leads = await Lead.find(query)
             .skip(skip)
             .limit(limit)
-            .sort({ followUpDate: 1 })
+            .sort(sortObj)
             .populate([
                 {
                     path: 'leadSource',
@@ -301,7 +398,15 @@ exports.getAllImportedLeadsByCompany = async (params, user) => {
         const {
             page = 1,
             limit = 10,
-            search = ''
+            search = '',
+            leadStatus,
+            assignedAgent,
+            leadSource,
+            productService,
+            startDate,
+            endDate,
+            sortBy = 'followUpDate',
+            sortOrder = 'asc'
         } = params;
 
         const data = await getAllImportedLeadsByCompanyWithPagination(
@@ -311,7 +416,15 @@ exports.getAllImportedLeadsByCompany = async (params, user) => {
             Number(page),
             Number(limit),
             {
-                search
+                search,
+                leadStatus,
+                assignedAgent,
+                leadSource,
+                productService,
+                startDate,
+                endDate,
+                sortBy,
+                sortOrder
             }
         );
 
@@ -343,19 +456,19 @@ const getAllImportedLeadsByCompanyWithPagination = async (
         const skip = (page - 1) * limit;
 
         // First, get all LeadStatus IDs where showFollowUp is true
-        const followupStatusIds = await LeadStatus
-            .find({
-                companyId,
-                showFollowUp: true,
-                // deleted: false,
-                // isActive: true,
-            })
-            .select("_id");
-        const statusIds = followupStatusIds.map((status) => status._id);
+        // const followupStatusIds = await LeadStatus
+        //     .find({
+        //         companyId,
+        //         showFollowUp: true,
+        //         // deleted: false,
+        //         // isActive: true,
+        //     })
+        //     .select("_id");
+        // const statusIds = followupStatusIds.map((status) => status._id);
         // Base query with company and deleted condition
         let query = {
             companyId: companyId,
-            leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
+            // leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
             leadAddType:'Import'
         };
         // Add assignedAgent filter only for User role
@@ -363,6 +476,35 @@ const getAllImportedLeadsByCompanyWithPagination = async (
             query.assignedAgent = userId;
         } else {
         }
+
+        // Add date range filter if provided
+        if (filters.startDate && filters.endDate) {
+            const start = new Date(filters.startDate);
+            start.setUTCHours(0, 0, 0, 0);
+            const end = new Date(filters.endDate);
+            end.setUTCHours(23, 59, 59, 999);
+
+            query.followUpDate = {
+                $gte: start,
+                $lte: end
+            };
+        }
+
+        // Add specific filters if provided
+        if (filters.leadStatus) {
+            console.log("filters.leadStatus",filters.leadStatus)
+            query.leadStatus =  new Types.ObjectId(filters.leadStatus);
+        }
+        if (filters.assignedAgent) {
+            query.assignedAgent =  new Types.ObjectId(filters.assignedAgent);
+        }
+        if (filters.leadSource) {
+            query.leadSource =  new Types.ObjectId(filters.leadSource);
+        }
+        if (filters.productService) {
+            query.productService =  new Types.ObjectId(filters.productService);
+        }
+
         // Search functionality
         if (filters.search) {
             query.$or = [
@@ -372,13 +514,18 @@ const getAllImportedLeadsByCompanyWithPagination = async (
                 { city: { $regex: filters.search, $options: 'i' } }
             ];
         }
+
+        // Build sort object
+        const sortObj = {};
+        sortObj[filters.sortBy] = filters.sortOrder === 'desc' ? -1 : 1;
+
         // Get total count for pagination
         const total = await Lead.countDocuments(query);
         // Get paginated leads
         const leads = await Lead.find(query)
             .skip(skip)
             .limit(limit)
-            .sort({ followUpDate: 1 })
+            .sort(sortObj)
             .populate([
                 {
                     path: 'leadSource',
@@ -425,7 +572,15 @@ exports.getAllOutsourcedLeadsByCompany = async (params, user) => {
         const {
             page = 1,
             limit = 10,
-            search = ''
+            search = '',
+            leadStatus,
+            assignedAgent,
+            leadSource,
+            productService,
+            startDate,
+            endDate,
+            sortBy = 'followUpDate',
+            sortOrder = 'asc'
         } = params;
 
         const data = await getAllOutsourcedLeadsByCompanyWithPagination(
@@ -435,7 +590,15 @@ exports.getAllOutsourcedLeadsByCompany = async (params, user) => {
             Number(page),
             Number(limit),
             {
-                search
+                search,
+                leadStatus,
+                assignedAgent,
+                leadSource,
+                productService,
+                startDate,
+                endDate,
+                sortBy,
+                sortOrder
             }
         );
 
@@ -467,19 +630,19 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
         const skip = (page - 1) * limit;
 
         // First, get all LeadStatus IDs where showFollowUp is true
-        const followupStatusIds = await LeadStatus
-            .find({
-                companyId,
-                showFollowUp: true,
-                // deleted: false,
-                // isActive: true,
-            })
-            .select("_id");
-        const statusIds = followupStatusIds.map((status) => status._id);
+        // const followupStatusIds = await LeadStatus
+        //     .find({
+        //         companyId,
+        //         showFollowUp: true,
+        //         // deleted: false,
+        //         // isActive: true,
+        //     })
+        //     .select("_id");
+        // const statusIds = followupStatusIds.map((status) => status._id);
         // Base query with company and deleted condition
         let query = {
             companyId: companyId,
-            leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
+            //leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
             leadAddType:'ThirdParty'
         };
         // Add assignedAgent filter only for User role
@@ -487,6 +650,36 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
             query.assignedAgent = userId;
         } else {
         }
+       
+        // Add date range filter if provided
+        if (filters.startDate && filters.endDate) {
+            const start = new Date(filters.startDate);
+            start.setUTCHours(0, 0, 0, 0);
+            const end = new Date(filters.endDate);
+            end.setUTCHours(23, 59, 59, 999);
+
+            query.followUpDate = {
+                $gte: start,
+                $lte: end
+            };
+        }
+
+        // Add specific filters if provided
+        if (filters.leadStatus) {
+            console.log("filters.leadStatus",filters.leadStatus)
+            query.leadStatus =  new Types.ObjectId(filters.leadStatus);
+        }
+        if (filters.assignedAgent) {
+            query.assignedAgent =  new Types.ObjectId(filters.assignedAgent);
+        }
+        if (filters.leadSource) {
+            query.leadSource =  new Types.ObjectId(filters.leadSource);
+        }
+        if (filters.productService) {
+            query.productService =  new Types.ObjectId(filters.productService);
+        }
+
+
         // Search functionality
         if (filters.search) {
             query.$or = [
@@ -496,13 +689,19 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
                 { city: { $regex: filters.search, $options: 'i' } }
             ];
         }
+
+
+         // Build sort object
+         const sortObj = {};
+         sortObj[filters.sortBy] = filters.sortOrder === 'desc' ? -1 : 1;
+
         // Get total count for pagination
         const total = await Lead.countDocuments(query);
         // Get paginated leads
         const leads = await Lead.find(query)
             .skip(skip)
             .limit(limit)
-            .sort({ followUpDate: 1 })
+            .sort(sortObj)
             .populate([
                 {
                     path: 'leadSource',
@@ -720,6 +919,61 @@ exports.getLeadDetails=async (leadId,{},user)=>{
         
     }
 }
+
+
+//////////  lead bulk update 
+exports.bulkUpdateLeads = async (data, user) => {
+    try {
+        const { leadIds, assignedAgent, leadStatus } = data;
+        // Build update object
+        const updateData = {};
+        if (assignedAgent) updateData.assignedAgent = new Types.ObjectId(assignedAgent);
+        if (leadStatus) updateData.leadStatus = new Types.ObjectId(leadStatus);
+
+        // Update multiple documents
+        const result = await Lead.updateMany(
+            { 
+                _id: { $in: leadIds.map(id => new Types.ObjectId(id)) },
+                companyId: user.companyId // Security check
+            },
+            { $set: updateData },
+            { new: true }
+        );
+
+        return { 
+            modifiedCount: result.modifiedCount,
+            message: `Successfully updated ${result.modifiedCount} leads`
+        };
+
+    } catch (error) {
+        console.error('Bulk Update Leads Error:', error);
+        throw error;
+    }
+};
+
+
+//////// bulk delete lead
+exports.bulkDeleteLeads = async (data, user) => {
+    try {
+        const { leadIds } = data;
+
+        // Delete multiple documents
+        const result = await Lead.deleteMany({
+            _id: { $in: leadIds.map(id =>new Types.ObjectId(id)) },
+            companyId: user.companyId // Security check: only delete leads from user's company
+        });
+
+        return {
+            deletedCount: result.deletedCount,
+            message: `Successfully deleted ${result.deletedCount} leads`
+        };
+
+    } catch (error) {
+        console.error('Bulk Delete Leads Error:', error);
+        throw error;
+    }
+};
+
 
 
 

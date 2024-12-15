@@ -210,42 +210,41 @@ exports.validateEmail = (email) => {
   return emailRegex.test(email)
 }
 
-// Middleware for validation
-// exports.joiValidateLead = function(schema) {
-//   return async function(req, res, next) {
-//     try {
-//       // Clean up input data
-//       if (req.body.contactNumber) {
-//         req.body.contactNumber = req.body.contactNumber.replace(/\s+/g, '');
-//       }
-//       if (req.body.alternatePhone) {
-//         req.body.alternatePhone = req.body.alternatePhone.replace(/\s+/g, '');
-//       }
-//       if (req.body.email) {
-//         req.body.email = req.body.email.trim().toLowerCase();
-//       }
 
-//       const result = schema.body.validate(req.body, validationOptions);
+exports.bulkUpdateLeads = {
+  body: Joi.object({
+      leadIds: Joi.array().items(Joi.string()).min(1).required()
+          .messages({
+              'array.base': 'Lead IDs must be an array',
+              'array.min': 'At least one lead ID is required',
+              'array.empty': 'Lead IDs cannot be empty'
+          }),
+      assignedAgent: Joi.string().optional(),
+      leadStatus: Joi.string().optional()
+  }).required()  // Make sure the entire object is required
+};
 
-//       if (result.error) {
-//         return res.status(400).json({
-//           error: true,
-//           message: 'Validation failed',
-//           errors: result.error.details.map(detail => ({
-//             field: detail.path.join('.'),
-//             message: detail.message
-//           }))
-//         });
-//       }
 
-//       req.body = result.value;
-//       next();
-//     } catch (error) {
-//       return res.status(500).json({
-//         error: true,
-//         message: 'Validation processing failed',
-//         data: {}
-//       });
-//     }
-//   };
-// };
+exports.bulkDeleteLeads = Joi.object({
+  leadIds: Joi.array().items(Joi.string()).min(1).required()
+      .messages({
+          'array.base': 'Lead IDs must be an array',
+          'array.min': 'At least one lead ID is required',
+          'array.empty': 'Lead IDs cannot be empty'
+      })
+});
+
+
+exports.getAllFollowupLeadsFilter = Joi.object({
+  page: Joi.number().min(1).default(1),
+  limit: Joi.number().min(1).default(10),
+  search: Joi.string().allow('').default(''),
+  leadStatus: Joi.string().optional(),
+  assignedAgent: Joi.string().optional(),
+  leadSource: Joi.string().optional(),
+  productService: Joi.string().optional(),
+  startDate: Joi.date().optional(),
+  endDate: Joi.date().optional().min(Joi.ref('startDate')),
+  sortBy: Joi.string().valid('followUpDate', 'createdAt').default('followUpDate'),
+  sortOrder: Joi.string().valid('asc', 'desc').default('asc')
+});

@@ -18,7 +18,15 @@ exports.getAllByCompany = (req, res) => {
     const queryParams = {
       page: req.query.page,
       limit: req.query.limit,
-      search: req.query.search
+      search: req.query.search,
+      leadStatus: req.query.leadStatus,
+      assignedAgent: req.query.assignedAgent,
+      leadSource: req.query.leadSource,
+      productService: req.query.productService,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      sortBy: 'followUpDate',
+      sortOrder: 'asc'
     };
   
     return service.getAllLeadsByCompany(queryParams, req.user)
@@ -31,7 +39,15 @@ exports.getAllFollowupLeadsByCompany = (req, res) => {
     const queryParams = {
       page: req.query.page,
       limit: req.query.limit,
-      search: req.query.search
+      search: req.query.search,
+      leadStatus: req.query.leadStatus,
+      assignedAgent: req.query.assignedAgent,
+      leadSource: req.query.leadSource,
+      productService: req.query.productService,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      sortBy: 'followUpDate',
+      sortOrder: 'asc'
     };
   
     return service.getAllFollowupLeadsByCompany(queryParams, req.user)
@@ -44,8 +60,16 @@ exports.getAllFollowupLeadsByCompany = (req, res) => {
 exports.getAllImportedLeadsByCompany = (req, res) => {
   const queryParams = {
     page: req.query.page,
-    limit: req.query.limit,
-    search: req.query.search
+      limit: req.query.limit,
+      search: req.query.search,
+      leadStatus: req.query.leadStatus,
+      assignedAgent: req.query.assignedAgent,
+      leadSource: req.query.leadSource,
+      productService: req.query.productService,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      sortBy: 'followUpDate',
+      sortOrder: 'asc'
   };
   return service.getAllImportedLeadsByCompany(queryParams, req.user)
     .then(result =>responseHandler.success1(res, result, "Leads retrieved successfully!", 200))
@@ -57,7 +81,15 @@ exports.getAllOutsourcedLeadsByCompany = (req, res) => {
   const queryParams = {
     page: req.query.page,
     limit: req.query.limit,
-    search: req.query.search
+    search: req.query.search,
+    leadStatus: req.query.leadStatus,
+    assignedAgent: req.query.assignedAgent,
+    leadSource: req.query.leadSource,
+    productService: req.query.productService,
+    startDate: req.query.startDate,
+    endDate: req.query.endDate,
+    sortBy: 'followUpDate',
+    sortOrder: 'asc'
   };
   return service.getAllOutsourcedLeadsByCompany(queryParams, req.user)
     .then(result =>responseHandler.success1(res, result, "Leads retrieved successfully!", 200))
@@ -70,6 +102,19 @@ exports.getAllOutsourcedLeadsByCompany = (req, res) => {
        .then((result)=>responseHandler.success(res, result,"Lead update successfully!", 200))
        .catch((error) => responseHandler.error(res, error, error.message, 500));
   }
+
+  /////////  bulk update lead 
+exports.bulkUpdateLeads = (req, res) => {
+  return service.bulkUpdateLeads(req.body, req.user)
+      .then((result) => responseHandler.success(res, result, "Lead update successfully!", 200))
+      .catch((error) => responseHandler.error(res, error, error.message, 500));
+};
+
+exports.bulkDeleteLeads = (req, res) => {
+  return service.bulkDeleteLeads(req.body, req.user)
+      .then((result) => responseHandler.success(res, result, "Leads deleted successfully!", 200))
+      .catch((error) => responseHandler.error(res, error, error.message, 500));
+};
 
   ///////  get lead details
   exports.getLeadDetails = (req, res) => {

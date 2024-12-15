@@ -36,6 +36,7 @@ router.get(
   auth.isAuthenticated({
     // adminOnly: true
   }),
+  // joiValidate(validationInputs.getAllFollowupLeadsFilter, options),
   controller.getAllFollowupLeadsByCompany
 )
 
@@ -77,6 +78,27 @@ router.get(
   // joiValidate(validationInputs.validateUpdateLead, options),
   controller.getLeadDetails
 )
+
+//////////  bulk action lead update
+router.put(
+  usersVersion + '/bulkUpdate',
+  auth.isAuthenticated({
+    // adminOnly: true
+  }),
+  joiValidate(validationInputs.bulkUpdateLeads, options),
+  controller.bulkUpdateLeads
+)
+//////////  bulk Delete lead 
+router.delete(
+  usersVersion + '/bulkDelete',
+  auth.isAuthenticated({
+    // adminOnly: true
+  }),
+  joiValidate(validationInputs.bulkDeleteLeads),
+  controller.bulkDeleteLeads
+);
+
+
 
 
 
