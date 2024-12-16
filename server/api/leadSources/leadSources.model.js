@@ -29,7 +29,12 @@ const LeadSourceSchema = new mongoose.Schema({
   deleted: {
     type: Boolean,
     default: false
-  }
+  },
+  isApiRequired:{
+    type: Boolean,
+    default: false
+  },
+
 });
 
 // Add compound index for unique name per company
