@@ -160,10 +160,10 @@ exports.validateGetCallList = {
 
 exports.validateProductSaleReport={
     body:Joi.object({
-      assignedAgent: Joi.string().allow('' || null).optional(),
-      leadSource: Joi.string().allow('' || null).optional(),
-      leadStatus:Joi.string().allow('' || null).optional(),
-      ProductService: Joi.string().allow('' || null).optional(),
+      assignedAgent: Joi.string().allow('', null).optional(),
+      leadSource: Joi.string().allow('', null).optional(),
+      leadStatus:Joi.string().allow('', null).optional(),
+      ProductService: Joi.string().allow('', null).optional(),
       startDate: Joi.date().required(),
       endDate: Joi.date().required().min(Joi.ref('startDate'))
     }),
