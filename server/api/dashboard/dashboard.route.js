@@ -22,5 +22,16 @@ router.get(
 )
 
 
+////////// get all data for dashboard
+
+router.get(
+  usersVersion + '/dashboard/metrics',
+  auth.isAuthenticated({
+    
+  }),
+  controller.getDashboardMetrics
+);
+
+
 
 module.exports = router;
