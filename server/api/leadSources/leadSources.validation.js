@@ -8,7 +8,8 @@ exports.validateLeadSources={
         name: Joi.string().required().trim().messages({
           'string.empty': 'Lead Source is required',
           'any.required': 'Lead Source name is required'
-        })
+        }),
+        isApiRequired: Joi.boolean().optional(),
       }),
 };
 

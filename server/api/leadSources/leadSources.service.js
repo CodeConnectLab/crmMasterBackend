@@ -51,7 +51,7 @@ exports.getAllByCompany = async ({},user) => {
     }
   };
 
-exports.updateLeadSources = async (contentId, { name, setupFee, price }, user) => {
+exports.updateLeadSources = async (contentId, { name,isApiRequired, setupFee, price }, user) => {
     try {
       // Check if product exists and belongs to the company
       const existingProduct = await leadSourcesModel.findOne({
@@ -84,6 +84,7 @@ exports.updateLeadSources = async (contentId, { name, setupFee, price }, user) =
         {
           $set: {
             ...(name && { name }),
+            ...(isApiRequired && { isApiRequired }),
             updatedBy: user._id
           }
         },
