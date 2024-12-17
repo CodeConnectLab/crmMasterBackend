@@ -84,7 +84,7 @@ exports.updateLeadSources = async (contentId, { name,isApiRequired, setupFee, pr
         {
           $set: {
             ...(name && { name }),
-            ...(isApiRequired && { isApiRequired }),
+            ...(typeof isApiRequired !== 'undefined' && { isApiRequired }),
             updatedBy: user._id
           }
         },
