@@ -397,7 +397,7 @@ const leadSourceMetricsss = async (start, end, user) => {
       {
         $match: {
           companyId: user.companyId,
-          createdAt: { $gte: start, $lte: end }
+         /// createdAt: { $gte: start, $lte: end }
         }
       },
       {
@@ -411,7 +411,7 @@ const leadSourceMetricsss = async (start, end, user) => {
       {
         $unwind: '$sourceInfo'
       },
-      {
+      {  ////for group for setup value         
         $group: {
           _id: {
             sourceId: '$sourceInfo._id',
@@ -421,7 +421,7 @@ const leadSourceMetricsss = async (start, end, user) => {
           count: { $sum: 1 }
         }
       },
-      {
+      {  ////for showup
         $project: {
           _id: 0,
           name: '$_id.sourceName',
@@ -572,6 +572,7 @@ const leadSourceMetricsss = async (start, end, user) => {
         summary: {
           receivedLeads: totals.totalReceived,
           lostLeads: totals.totalLoss,
+          
         }
       };
   
