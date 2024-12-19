@@ -11,6 +11,20 @@ const express = require('express'),
     wantResponse: true
   }
 
+  // const upload = require('../middlewares/upload.middleware');
+
+const upload = require('../../config/multer.config')
+//////////////uplode bulk lead through excel
+router.post(
+  usersVersion + '/bulkUplodeLead',
+  auth.isAuthenticated({
+    // adminOnly: true
+  }),
+  // joiValidate(validationInputs.bulkUplodeLead),
+  upload.single('file'),
+  controller.bulkUplodeLead
+)
+
 ////create Lead
 router.post(
   usersVersion + '/lead',
@@ -97,6 +111,10 @@ router.delete(
   joiValidate(validationInputs.bulkDeleteLeads),
   controller.bulkDeleteLeads
 );
+
+
+
+
 
 
 

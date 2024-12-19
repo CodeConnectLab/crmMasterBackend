@@ -248,3 +248,8 @@ exports.getAllFollowupLeadsFilter = Joi.object({
   sortBy: Joi.string().valid('followUpDate', 'createdAt').default('followUpDate'),
   sortOrder: Joi.string().valid('asc', 'desc').default('asc')
 });
+
+
+exports.bulkUplodeLead=Joi.object({
+
+});

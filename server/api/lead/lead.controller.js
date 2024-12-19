@@ -124,6 +124,66 @@ exports.bulkDeleteLeads = (req, res) => {
 }
 
 
+//////////  uplode bulk excel sheet
+exports.bulkUplodeLead1 = (req, res) => {
+  if (!req.file) {
+    return responseHandler.error(res, null, 'No file uploaded', 400);
+  }
+
+  const fileData = {
+    buffer: req.file.buffer,
+    originalname: req.file.originalname,
+    mimetype: req.file.mimetype
+  };
+
+  // Get form data for dropdowns
+  const formData = {
+    leadSource: req.body.leadSource,
+    service: req.body.service,
+    status: req.body.status,
+    country: req.body.country,
+    state: req.body.state,
+    assignToAgent: req.body.assignToAgent
+  };
+
+  return service.bulkLeadUpload(fileData, req.user, formData)
+    .then((result) => responseHandler.success(res, result, "Sheet upload successfully!", 200))
+    .catch((error) => responseHandler.error(res, error, error.message, 500));
+};
+
+exports.bulkUplodeLead = async (req, res) => {
+  try {
+    if (!req.file) {
+      return responseHandler.error(res, null, 'No file uploaded', 400);
+    }
+
+
+    // Get form data with null defaults
+    const formData = {
+      leadSource: req.body.leadSource || null,
+      service: req.body.service || null,
+      status: req.body.status || null,
+      country: req.body.country || null,
+      state: req.body.state || null,
+      assignToAgent: req.body.assignToAgent || null
+    };
+
+    const fileData = {
+      buffer: req.file.buffer,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype
+    };
+
+    const result = await service.bulkLeadUpload(fileData, req.user, formData);
+    return responseHandler.success(res, result, "Sheet upload successfully!", 200);
+
+  } catch (error) {
+    console.error('Error in bulkUplodeLead controller:', error);
+    return responseHandler.error(res, error, error.message || 'Error processing upload', 500);
+  }
+};
+
+
   exports.get=(req,res)=>{
    return responseHandler.success(res, '', "ok", 200)
   }

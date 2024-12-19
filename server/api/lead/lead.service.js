@@ -8,7 +8,8 @@ const {validateLeadHistory} = require('./lead.validation');
 const {leadHistoryController} =require('./leadHistory.service');
 const LeadHistory=require('./leadHistory.model');
 const { Types } = require('mongoose');
-
+const XLSX = require('xlsx');
+////////  lead Save 
 exports.createLeadByCompany = async (data, user) => {
     try {
         if (data.contactNumber) {
@@ -41,6 +42,126 @@ exports.createLeadByCompany = async (data, user) => {
         return Promise.reject(error);
     }
 };
+
+//////////  Bulk Lead Uplode 
+exports.bulkLeadUpload = async (fileData, user, formData) => {
+    try {
+      console.log('Starting bulk lead upload process');
+  
+      const workbook = XLSX.read(fileData.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const leads = XLSX.utils.sheet_to_json(worksheet);
+  
+      console.log(`Parsed ${leads.length} leads from Excel`);
+  
+      const validLeads = [];
+      const duplicates = [];
+      const existingPhoneNumbers = new Set();
+  
+      // Get existing contacts to check duplicates
+      if (leads.some(lead => lead.contactNumber)) {
+        console.log('Checking for existing contact numbers');
+        const existingLeads = await Lead.find({
+          companyId: user.companyId,
+          contactNumber: { 
+            $in: leads.map(lead => lead.contactNumber).filter(Boolean) 
+          }
+        }, { contactNumber: 1 });
+  
+        console.log(`Found ${existingLeads.length} existing contacts`);
+  
+        existingLeads.forEach(lead => {
+          if (lead.contactNumber) {
+            existingPhoneNumbers.add(lead.contactNumber.toString());
+          }
+        });
+      }
+  
+      // Process each lead
+      for (let [index, lead] of leads.entries()) {
+        const rowNumber = index + 2;
+  
+        if (lead.contactNumber) {
+          const phoneNumber = lead.contactNumber.toString().trim();
+          if (existingPhoneNumbers.has(phoneNumber)) {
+            duplicates.push(`Row ${rowNumber}: Skipped duplicate contact number ${phoneNumber}`);
+            continue;
+          }
+          existingPhoneNumbers.add(phoneNumber);
+        }
+  
+        // Create lead object
+        const leadObj = {
+          companyId: user.companyId,  // Remove optional chaining
+          createdBy: user._id,        // Remove optional chaining
+          firstName: lead.firstName || '',
+          lastName: lead.lastName || '',
+          email: lead.email || '',
+          contactNumber: lead.contactNumber || '',
+          leadSource: formData.leadSource,      // Remove optional chaining
+          productService: formData.service,     // Remove optional chaining
+          assignedAgent: formData.assignToAgent,// Remove optional chaining
+          leadStatus: formData.status,         // Remove optional chaining
+          followUpDate: new Date(),
+          description: lead.description || '',
+          fullAddress: lead.fullAddress || '',
+          website: lead.website || '',
+          companyName: lead.companyName || '',
+          country: formData.country || '',
+          state: formData.state || '',
+          city: lead.city || '',
+          pinCode: lead.pinCode || '',
+          alternatePhone: lead.alternatePhone || '',
+          leadCost: lead.leadCost || 0,
+          leadAddType: 'Import',
+          leadWonAmount: lead.leadWonAmount || 0,
+          addCalender: false,
+          calanderMassage: '',
+          comment: lead.comment || ''
+        };
+  
+        validLeads.push(leadObj);
+      }
+  
+      console.log(`Processing ${validLeads.length} valid leads`);
+  
+      // Insert valid leads in batches
+      if (validLeads.length > 0) {
+        const batchSize = 100;
+        for (let i = 0; i < validLeads.length; i += batchSize) {
+          const batch = validLeads.slice(i, i + batchSize);
+          console.log(`Inserting batch ${i/batchSize + 1}`);
+          try {
+            const insertedLeads = await Lead.insertMany(batch, { ordered: false });
+            console.log(`Successfully inserted ${insertedLeads.length} leads in batch`);
+          } catch (insertError) {
+            console.error('Error inserting batch:', insertError);
+            throw insertError;
+          }
+        }
+      }
+  
+      return {
+        totalProcessed: leads.length,
+        successful: validLeads.length,
+        skipped: duplicates.length,
+        duplicateDetails: duplicates
+      };
+  
+    } catch (error) {
+      console.error('Error in bulkLeadUpload service:', error);
+      if (error.code === 11000) {
+        throw {
+          message: 'Error while processing leads',
+          errors: ['Some leads could not be added to the database']
+        };
+      }
+      throw error;
+    }
+  };
+ 
+
 
 //////  get All lead
 exports.getAllLeadsByCompany = async (params, user) => {
