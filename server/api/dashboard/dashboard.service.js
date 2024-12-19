@@ -1,6 +1,7 @@
 const LeadModel=require('../lead/lead.model');
 const LeadStatusModel=require('../leadStatus/leadStatus.model')
 const userRoles = require('../../config/constants/userRoles');
+const UserModel =require('../user/user.model')
 exports.getCalendarData=async({},user)=>{
     try {
         const Calenderdata = await LeadModel.find(
@@ -45,6 +46,8 @@ exports.getDashboardMetrics = async (params, user) => {
       const leadSourceMetricss=await leadSourceMetricsss(start,end,user)
 
       const paymentOverview=await getPaymentsOverview(user)
+
+      const employeePerformance = await getEmployeePerformance(start,end, user);
       
 
       return {
@@ -52,7 +55,8 @@ exports.getDashboardMetrics = async (params, user) => {
         activityMetrics,
         performanceMetrics,
         leadSourceMetricss,
-        paymentOverview
+        paymentOverview,
+        employeePerformance
       }
     } catch (error) {
         console.error('Dashboard Metrics Error:', error);
@@ -579,5 +583,175 @@ const leadSourceMetricsss = async (start, end, user) => {
     } catch (error) {
       console.error('Error in getPaymentsOverview:', error);
       throw new Error('Failed to fetch overview data');
+    }
+  };
+
+ 
+  const getEmployeePerformance = async (start, end, user) => {
+    try {
+      // Base query
+      const baseQuery = {
+        companyId: user.companyId
+      };
+  
+      // If not admin, only show current user's data
+      if (user.role !== userRoles.SUPER_ADMIN) {
+        baseQuery.assignedAgent = user._id;
+      }
+  
+      // Get won and loss status IDs
+      const [wonStatusIds, lossStatusIds] = await Promise.all([
+        LeadStatusModel.find({
+          companyId: user.companyId,
+          wonStatus: true
+        }).distinct('_id'),
+        LeadStatusModel.find({
+          companyId: user.companyId,
+          lossStatus: true
+        }).distinct('_id')
+      ]);
+  
+      // Get employee performance metrics
+      const performanceMetrics = await LeadModel.aggregate([
+        {
+          $match: baseQuery
+        },
+        {
+          $group: {
+            _id: '$assignedAgent',
+            leads: { $push: '$$ROOT' },
+            assignedLeads: { $sum: 1 },
+            firstNames: { $addToSet: '$firstName' },
+            lastNames: { $addToSet: '$lastName' },
+            totalRevenue: {
+              $sum: {
+                $cond: [
+                  { $in: ['$leadStatus', wonStatusIds] },
+                  { $ifNull: ['$leadWonAmount', 0] },
+                  0
+                ]
+              }
+            }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'userInfo'
+          }
+        },
+        {
+          $unwind: '$userInfo'
+        },
+        {
+          $addFields: {
+            closedLeads: {
+              $size: {
+                $filter: {
+                  input: '$leads',
+                  as: 'lead',
+                  cond: { 
+                    $or: [
+                      { $in: ['$$lead.leadStatus', wonStatusIds] },
+                      { $in: ['$$lead.leadStatus', lossStatusIds] }
+                    ]
+                  }
+                }
+              }
+            },
+            openLeads: {
+              $size: {
+                $filter: {
+                  input: '$leads',
+                  as: 'lead',
+                  cond: { 
+                    $and: [
+                      { $not: [{ $in: ['$$lead.leadStatus', wonStatusIds] }] },
+                      { $not: [{ $in: ['$$lead.leadStatus', lossStatusIds] }] }
+                    ]
+                  }
+                }
+              }
+            },
+            failedLeads: {
+              $size: {
+                $filter: {
+                  input: '$leads',
+                  as: 'lead',
+                  cond: { $in: ['$$lead.leadStatus', lossStatusIds] }
+                }
+              }
+            },
+            wonLeads: {
+              $size: {
+                $filter: {
+                  input: '$leads',
+                  as: 'lead',
+                  cond: { $in: ['$$lead.leadStatus', wonStatusIds] }
+                }
+              }
+            },
+            conversion: {
+              $cond: [
+                { $eq: ['$assignedLeads', 0] },
+                0,
+                {
+                  $multiply: [
+                    { $divide: [
+                      { $size: {
+                        $filter: {
+                          input: '$leads',
+                          as: 'lead',
+                          cond: { $in: ['$$lead.leadStatus', wonStatusIds] }
+                        }
+                      }},
+                      '$assignedLeads'
+                    ]},
+                    100
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            agent: '$userInfo.name',
+           // leadFirstName: { $arrayElemAt: ['$firstNames', 0] },
+          //  leadLastName: { $arrayElemAt: ['$lastNames', 0] },
+            assignedLeads: 1,
+            closed: '$closedLeads',
+            open: '$openLeads',
+            failed: '$failedLeads',
+            totalRevenue: 1,
+            conversion: { 
+              $toString: { 
+                $round: ['$conversion', 2] 
+              }
+            },
+            isOnline: { $ifNull: ['$userInfo.isOnline', false] },
+            // email: '$userInfo.email',
+            // phone: '$userInfo.phone'
+          }
+        },  
+        {
+          $sort: { assignedLeads: -1 }
+        }
+      ]);
+  
+      // Format the revenue and conversion after aggregation
+      const formattedMetrics = performanceMetrics.map(metric => ({
+        ...metric,
+        revenue: `${metric.totalRevenue}`,
+        conversion: `${metric.conversion}%`
+      }));
+  
+      return formattedMetrics;
+    } catch (error) {
+      console.error('Error in getEmployeePerformance:', error);
+      throw error;
     }
   };
