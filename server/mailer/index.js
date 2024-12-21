@@ -36,11 +36,11 @@ exports.sendMail = function ({
             .then(function (result) {
                 // setup email data with unicode symbols
                 let mailOptions = {
-                    from: process.env.SUPPORT_EMAIL, //'"Sender Name" <sender@gmail.com>"', // sender address
-                    to: process.env.LOCAL_EMAIL || toEmail, // receiver address,
-                    subject: result.subject, //'Hello ✔', // Subject line
-                    text: result.text, //'Hello world ?', // plain text body
-                    html: result.html, //'<b>Hello world ?</b>' // html body
+                    from: process.env.SUPPORT_EMAIL, 
+                    to: toEmail  || process.env.LOCAL_EMAIL, 
+                    subject: `CodeConnect CRM: Password Reset Code`, 
+                    text: result.text, 
+                    html: result.html, 
                     secure: true,
                     priority: 'high'
                 };

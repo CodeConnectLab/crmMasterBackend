@@ -228,16 +228,16 @@ exports.requestOTP = async ({ email ,deviceToken ,targetPlatform ,ipaddress}) =>
   );
 
 
-  return { email, otp };
+  // return { email, otp };
         
 
-        // mailer.sendMail({
-        //     templateName: "login-otp",
-        //     toEmail: userName,
-        //     locals: {
-        //         otp: otp
-        //     },
-        // }).then().catch()
+        mailer.sendMail({
+            templateName: "login-otp",
+            toEmail: email,
+            locals: {
+                otp: otp
+            },
+        }).then().catch()
         
     } catch (error) {
         return Promise.reject(error)

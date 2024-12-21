@@ -14,7 +14,7 @@ exports.refresh = (req, res, next) => {
 
 exports.requestOTP = (req, res, next) => {
     return service.requestOTP(req.body, req.headers.refresh)
-        .then(result => responseHandler.success(res, result, "User refresh successful!", 200))
+        .then(result => responseHandler.success(res, result, "Otp sent successfully!", 200))
         .catch(error => responseHandler.error(res, error, error.message, 500));
 }
 
