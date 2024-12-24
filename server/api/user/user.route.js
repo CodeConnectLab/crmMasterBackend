@@ -12,6 +12,7 @@ const express = require('express'),
     wantResponse: true,
   };
   const { validateCompanyUpdate } = require('../company/company.validation');
+  const { handleFileUpload } = require('../../config/fileUpload.js');
 // router.put(
 //   usersVersion + "/set-password",
 //   auth.isAuthenticated({
@@ -50,6 +51,15 @@ router.put(
   auth.isAuthenticated({}),
   controller.updateMe
 )
+
+/////  user profile img uplode 
+router.put(
+  usersVersion + "/users/profile-img-uplode",
+  auth.isAuthenticated({}),
+  handleFileUpload,
+  controller.updateProfileImg
+)
+
 
 
 ///////  company detail update 

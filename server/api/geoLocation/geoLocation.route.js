@@ -14,14 +14,13 @@ const { handleFileUpload } = require('../../config/fileUpload.js');
 
 
 
-// router.post(
-//     usersVersion + '/geo-location',
-//     auth.isAuthenticated({
-
-//     }),
-//     handleFileUpload,
-//     controller.geoLocationUplode
-//   );
+  router.post(
+    usersVersion + '/geo-location',
+    auth.isAuthenticated({}),
+    handleFileUpload,
+    //  joiValidate(validationInputs.geoLocationUpload, options),
+    controller.geoLocationUplode
+  );
 
 
   module.exports = router;

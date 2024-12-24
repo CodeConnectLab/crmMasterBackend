@@ -1,4 +1,3 @@
-// utils/fileUpload.js
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
@@ -26,9 +25,6 @@ const fileFilter = (req, file, cb) => {
     'image/jpeg',
     'image/png',
     'image/gif',
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
@@ -43,7 +39,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
+    fileSize: 3 * 1024 * 1024 // 5MB
   }
 });
 
@@ -69,7 +65,7 @@ const handleFileUpload = async (req, res, next) => {
       
       // File upload successful
       if (req.file) {
-        req.body.fileName = req.file.filename;
+        req.body.fileName = req.file?.filename;
         req.body.originalName = req.file.originalname;
         req.body.filePath = req.file.path;
       }

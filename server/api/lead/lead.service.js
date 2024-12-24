@@ -9,6 +9,7 @@ const {leadHistoryController} =require('./leadHistory.service');
 const LeadHistory=require('./leadHistory.model');
 const { Types } = require('mongoose');
 const XLSX = require('xlsx');
+const GeoLocationModel = require('../geoLocation/geoLocation.model');
 ////////  lead Save 
 exports.createLeadByCompany = async (data, user) => {
     try {
@@ -1027,11 +1028,22 @@ exports.getLeadDetails=async (leadId,{},user)=>{
         },
         { $sort: { DATE: -1 } },
       ]);
+
+      //////  Get Geo-Location
+      const geoLocation = await GeoLocationModel.aggregate([
+        {
+            $match: {
+              leadId: leadObjectId,
+              companyId:user.companyId,
+            },
+          },
+        ]);
       // Format the response
       const formattedResponse = {
         leadDetails: {
           lead,
           history,
+          geoLocation
         },
       };
 

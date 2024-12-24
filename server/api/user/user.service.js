@@ -12,13 +12,14 @@ const authService = require('../auth/auth.service')
 const userModel = require('./user.model')
 const companyModel =require('../company/company.model')
 const checkPermission = require('../../utility/permissionCheck')
-const fs = require('fs')
-
+// const fs = require('fs')
+const fs = require('fs').promises;
 //
 const AWS = require('aws-sdk')
 const { getPresignedUrl } = require('../../helpers/aws-s3.helper')
 const { error } = require('console')
 const userRoles = require('../../config/constants/userRoles')
+const { uploadToS3 } = require('../../helpers/aws-s3.helper');
 ///
 
 /**
@@ -183,6 +184,40 @@ exports.updateMe= async ({name,bio},user)=>{
    const data={name,bio}
    return UserModel.findByIdAndUpdate(user._id,{$set:data},{new:true,
     select: '-hashedPassword -hashSalt -otp -otpExpiry -resetPasswordToken'});
+}
+
+exports.updateProfileImg = async (data, user) => {
+  try {    
+
+    const fileBuffer = await fs.readFile(data.filePath)
+    const fileObj = {   
+      originalname: data.originalName,  
+      buffer: fileBuffer,
+      mimetype: 'image/png'
+    }
+    const s3Upload = await uploadToS3(fileObj ,folder='profile-image')
+    const uplode = { profilePic: s3Upload.url }   
+
+    const userdata= UserModel.findByIdAndUpdate(
+      user._id,
+      { $set: uplode },
+      { new: true,
+        select: '-hashedPassword -hashSalt -otp -otpExpiry -resetPasswordToken'
+       }
+    )
+  
+     // Optionally cleanup the local file
+     try {
+      await fs.unlink(data.filePath);
+    } catch (cleanupError) {
+      console.error('Error cleaning up local file:', cleanupError);
+      // Don't throw error for cleanup failures
+    }
+   return userdata;
+
+  } catch (error) {
+    return Promise.reject(error)
+  }
 }
 
 exports.updateOne = async (
