@@ -241,11 +241,11 @@ const activityMetricss = async (start, end, user) => {
         ]
       }
       baseQuery = { ...baseQuery, ...query }
-      previousQuery = { ...previousQuery, ...query }
+     // previousQuery = { ...previousQuery, ...query }
     } else {
       // For regular users - only show their own data
       baseQuery.assignedAgent = user._id
-      previousQuery.assignedAgent = user._id
+     // previousQuery.assignedAgent = user._id
     }
   }
 
@@ -311,11 +311,11 @@ const calculateSalesMetrics = async (user) => {
           ]
         }
         baseQuery = { ...baseQuery, ...query }
-        previousQuery = { ...previousQuery, ...query }
+        //previousQuery = { ...previousQuery, ...query }
       } else {
         // For regular users - only show their own data
         baseQuery.assignedAgent = user._id
-        previousQuery.assignedAgent = user._id
+        //previousQuery.assignedAgent = user._id
       }
     }
 
@@ -590,11 +590,11 @@ const leadSourceMetricsss = async (start, end, user) => {
             ]
           }
           baseQuery = { ...baseQuery, ...query }
-          previousQuery = { ...previousQuery, ...query }
+         // previousQuery = { ...previousQuery, ...query }
         } else {
           // For regular users - only show their own data
           baseQuery.assignedAgent = user._id
-          previousQuery.assignedAgent = user._id
+          //previousQuery.assignedAgent = user._id
         }
       }
 
@@ -715,11 +715,11 @@ const leadSourceMetricsss = async (start, end, user) => {
             ]
           }
           baseQuery = { ...baseQuery, ...query }
-          previousQuery = { ...previousQuery, ...query }
+         // previousQuery = { ...previousQuery, ...query }
         } else {
           // For regular users - only show their own data
           baseQuery.assignedAgent = user._id
-          previousQuery.assignedAgent = user._id
+         // previousQuery.assignedAgent = user._id
         }
       }
 
