@@ -67,12 +67,12 @@ exports.getDashboardMetrics = async (params, user) => {
 
 const topMetricss = async (start, end, user) => {
   // Base query for current period
-  const baseQuery = {
+  let baseQuery = {
     companyId: user.companyId
     // createdAt: { $gte: start, $lte: end }
   }
   // Previous period query
-  const previousQuery = {
+  let previousQuery = {
     companyId: user.companyId,
     createdAt: {
       // $gte: registerdate,
@@ -222,7 +222,7 @@ const activityMetricss = async (start, end, user) => {
   endOfTomorrow.setUTCHours(23, 59, 59, 999)
 
   // Create base query based on user role
-  const baseQuery = {
+  let baseQuery = {
     companyId: user.companyId
   }
 
@@ -295,7 +295,7 @@ const calculateSalesMetrics = async (user) => {
     )
 
     // Base query with company filter
-    const baseQuery = { companyId: user.companyId }
+    let baseQuery = { companyId: user.companyId }
     // Add user filter based on role
     if (user.role !== userRoles.SUPER_ADMIN) {
       if (user.role === userRoles.TEAM_ADMIN) {
@@ -574,7 +574,7 @@ const leadSourceMetricsss = async (start, end, user) => {
       }
 
       // Base query for filtering by company and user role
-      const baseQuery = { companyId: user.companyId }
+      let baseQuery = { companyId: user.companyId }
       // Add user filter based on role
       if (user.role !== userRoles.SUPER_ADMIN) {
         if (user.role === userRoles.TEAM_ADMIN) {
@@ -696,7 +696,7 @@ const leadSourceMetricsss = async (start, end, user) => {
   const getEmployeePerformance = async (start, end, user) => {
     try {
       // Base query
-      const baseQuery = {
+      let baseQuery = {
         companyId: user.companyId
       }
 
