@@ -42,7 +42,8 @@ exports.createSupportUser = {
     password: Joi.string().allow(null),
     name: Joi.string().allow(null),
     phone: Joi.string().allow(null),
-    isActive:Joi.boolean().allow(null)
+    isActive:Joi.boolean().allow(null),
+    assignedTL: Joi.string().allow('', null).optional(),
   })
 }
 

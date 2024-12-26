@@ -79,12 +79,34 @@ const topMetricss = async (start, end, user) => {
       $lt: start
     }
   }
-   // Add user filter if not Super Admin
-   if (user.role !== userRoles.SUPER_ADMIN) {
-    baseQuery.assignedAgent = user._id;
-    previousQuery.assignedAgent = user._id;
-  }
+  //  // Add user filter if not Super Admin
+  //  if (user.role !== userRoles.SUPER_ADMIN) {
+  //   baseQuery.assignedAgent = user._id;
+  //   previousQuery.assignedAgent = user._id;
+  // }
 
+  // Add user filter based on role
+  if (user.role !== userRoles.SUPER_ADMIN) {
+    if (user.role === userRoles.TEAM_ADMIN) {
+      // For Team Leader - show their own data AND their team members' data
+      const query = {
+        $or: [
+          { assignedAgent: user._id }, // TL's own assignments
+          {
+            assignedAgent: {
+              $in: await UserModel.distinct('_id', { assignedTL: user._id })
+            }
+          } // Team members' assignments
+        ]
+      }
+      baseQuery = { ...baseQuery, ...query }
+      previousQuery = { ...previousQuery, ...query }
+    } else {
+      // For regular users - only show their own data
+      baseQuery.assignedAgent = user._id
+      previousQuery.assignedAgent = user._id
+    }
+  }
 
   // Get followup status IDs
   const followupStatusIds = await LeadStatusModel.find({
@@ -140,32 +162,32 @@ const topMetricss = async (start, end, user) => {
     return num >= 1000 ? (num / 1000).toFixed(3) + 'K' : num
   }
 
-   
-   return data= [{
+  return (data = [
+    {
       value: formatNumber(currentLeads),
       change: calculatePercentageChange(currentLeads, previousLeads),
       title: 'All Leads',
       color: '#2AFF04',
       webroute: 'https://crm.codeconnect.in/leads/all',
-      deeplink:'alllead'
+      deeplink: 'alllead'
     },
-     {
+    {
       value: formatNumber(followupLeads),
       change: calculatePercentageChange(followupLeads, previousFollowupLeads),
       title: 'All Followup Leads',
       color: '#049bff',
       webroute: 'https://crm.codeconnect.in/leads/followup',
-      deeplink:'allFollowupLeads'
+      deeplink: 'allFollowupLeads'
     },
-     {
+    {
       value: formatNumber(importedLeads),
       change: calculatePercentageChange(importedLeads, previousImportedLeads),
       title: 'All Imported Leads',
       color: '#ff8e04',
       webroute: 'https://crm.codeconnect.in/leads/imported-leads',
-      deeplink:'allImportedLeads'
+      deeplink: 'allImportedLeads'
     },
-     {
+    {
       value: formatNumber(outsourcedLeads),
       change: calculatePercentageChange(
         outsourcedLeads,
@@ -174,9 +196,9 @@ const topMetricss = async (start, end, user) => {
       title: 'All Outsource Leads',
       color: '#0804ff',
       webroute: 'https://crm.codeconnect.in/leads/outsourced-leads',
-      deeplink:'allOutsourceLeads'
-    } ]
-  
+      deeplink: 'allOutsourceLeads'
+    }
+  ])
 }
 
 const activityMetricss = async (start, end, user) => {
@@ -184,29 +206,47 @@ const activityMetricss = async (start, end, user) => {
   const dashboardStatusList = await LeadStatusModel.find({
     companyId: user.companyId,
     showDashboard: true
-  }).lean();
+  }).lean()
 
   // Set up dates
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const endOfToday = new Date(today);
-  endOfToday.setUTCHours(23, 59, 59, 999);
-  
-  const endOfTomorrow = new Date(tomorrow);
-  endOfTomorrow.setUTCHours(23, 59, 59, 999);
+  const today = new Date()
+  today.setUTCHours(0, 0, 0, 0)
+
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  const endOfToday = new Date(today)
+  endOfToday.setUTCHours(23, 59, 59, 999)
+
+  const endOfTomorrow = new Date(tomorrow)
+  endOfTomorrow.setUTCHours(23, 59, 59, 999)
 
   // Create base query based on user role
   const baseQuery = {
     companyId: user.companyId
-  };
+  }
 
-  // Add user filter if not Super Admin
+  // Add user filter based on role
   if (user.role !== userRoles.SUPER_ADMIN) {
-    baseQuery.assignedAgent = user._id;
+    if (user.role === userRoles.TEAM_ADMIN) {
+      // For Team Leader - show their own data AND their team members' data
+      const query = {
+        $or: [
+          { assignedAgent: user._id }, // TL's own assignments
+          {
+            assignedAgent: {
+              $in: await UserModel.distinct('_id', { assignedTL: user._id })
+            }
+          } // Team members' assignments
+        ]
+      }
+      baseQuery = { ...baseQuery, ...query }
+      previousQuery = { ...previousQuery, ...query }
+    } else {
+      // For regular users - only show their own data
+      baseQuery.assignedAgent = user._id
+      previousQuery.assignedAgent = user._id
+    }
   }
 
   // Create aggregation pipeline for each status
@@ -216,14 +256,14 @@ const activityMetricss = async (start, end, user) => {
       ...baseQuery,
       leadStatus: status._id,
       followUpDate: { $gte: today, $lte: endOfToday }
-    });
+    })
 
     // Count for tomorrow
     const tomorrowCount = await LeadModel.countDocuments({
       ...baseQuery,
       leadStatus: status._id,
       followUpDate: { $gte: tomorrow, $lte: endOfTomorrow }
-    });
+    })
 
     return {
       title: status.name,
@@ -232,46 +272,72 @@ const activityMetricss = async (start, end, user) => {
       tomorrow: tomorrowCount,
       leadStatus: status._id,
       route: 'https://crm.codeconnect.in/leadspage'
-    };
-  });
+    }
+  })
 
-  const activityMetrics = await Promise.all(statusPromises);
-  return activityMetrics;
-};
+  const activityMetrics = await Promise.all(statusPromises)
+  return activityMetrics
+}
 
 const calculateSalesMetrics = async (user) => {
   try {
     // Get current date info with UTC consideration
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth();
+    const currentDate = new Date()
+    const currentYear = currentDate.getFullYear()
+    const currentMonth = currentDate.getMonth()
 
     // Set date ranges with UTC
-    const startOfYear = new Date(Date.UTC(currentYear, 0, 1));
-    const endOfYear = new Date(Date.UTC(currentYear, 11, 31, 23, 59, 59, 999));
-    const startOfMonth = new Date(Date.UTC(currentYear, currentMonth, 1));
-    const endOfMonth = new Date(Date.UTC(currentYear, currentMonth + 1, 0, 23, 59, 59, 999));
+    const startOfYear = new Date(Date.UTC(currentYear, 0, 1))
+    const endOfYear = new Date(Date.UTC(currentYear, 11, 31, 23, 59, 59, 999))
+    const startOfMonth = new Date(Date.UTC(currentYear, currentMonth, 1))
+    const endOfMonth = new Date(
+      Date.UTC(currentYear, currentMonth + 1, 0, 23, 59, 59, 999)
+    )
 
     // Base query with company filter
-    const baseQuery = { companyId: user.companyId };
+    const baseQuery = { companyId: user.companyId }
+    // Add user filter based on role
     if (user.role !== userRoles.SUPER_ADMIN) {
-      baseQuery.userId = user._id;
+      if (user.role === userRoles.TEAM_ADMIN) {
+        // For Team Leader - show their own data AND their team members' data
+        const query = {
+          $or: [
+            { assignedAgent: user._id }, // TL's own assignments
+            {
+              assignedAgent: {
+                $in: await UserModel.distinct('_id', { assignedTL: user._id })
+              }
+            } // Team members' assignments
+          ]
+        }
+        baseQuery = { ...baseQuery, ...query }
+        previousQuery = { ...previousQuery, ...query }
+      } else {
+        // For regular users - only show their own data
+        baseQuery.assignedAgent = user._id
+        previousQuery.assignedAgent = user._id
+      }
     }
 
     // Fetch status IDs in parallel
     const [wonStatusIds, lossStatusIds] = await Promise.all([
-      LeadStatusModel.find({ 
-        companyId: user.companyId, 
-        wonStatus: true 
+      LeadStatusModel.find({
+        companyId: user.companyId,
+        wonStatus: true
       }).distinct('_id'),
-      LeadStatusModel.find({ 
-        companyId: user.companyId, 
-        lossStatus: true 
+      LeadStatusModel.find({
+        companyId: user.companyId,
+        lossStatus: true
       }).distinct('_id')
-    ]);
+    ])
 
     // Run all aggregations in parallel for better performance
-    const [yearlyWonResult, monthlyWonResult, monthlyLostResult, previousYearResult] = await Promise.all([
+    const [
+      yearlyWonResult,
+      monthlyWonResult,
+      monthlyLostResult,
+      previousYearResult
+    ] = await Promise.all([
       // Yearly won amount (current year)
       LeadModel.aggregate([
         {
@@ -345,23 +411,39 @@ const calculateSalesMetrics = async (user) => {
           }
         }
       ])
-    ]);
+    ])
 
     // Calculate percentages based on previous year's data
-    const previousYearAmount = previousYearResult[0]?.totalAmount || 0;
-    const currentYearAmount = yearlyWonResult[0]?.totalAmount || 0;
-    const yearlyPercentage = previousYearAmount ? 
-      Math.min(Math.round((currentYearAmount / previousYearAmount) * 100), 100) : 0;
+    const previousYearAmount = previousYearResult[0]?.totalAmount || 0
+    const currentYearAmount = yearlyWonResult[0]?.totalAmount || 0
+    const yearlyPercentage = previousYearAmount
+      ? Math.min(
+          Math.round((currentYearAmount / previousYearAmount) * 100),
+          100
+        )
+      : 0
 
     // Calculate monthly percentage based on yearly average target
-    const monthlyTarget = currentYearAmount ? Math.round(currentYearAmount / 12) : 100000;
-    const monthlyPercentage = monthlyTarget ? 
-      Math.min(Math.round(((monthlyWonResult[0]?.totalAmount || 0) / monthlyTarget) * 100), 100) : 0;
+    const monthlyTarget = currentYearAmount
+      ? Math.round(currentYearAmount / 12)
+      : 100000
+    const monthlyPercentage = monthlyTarget
+      ? Math.min(
+          Math.round(
+            ((monthlyWonResult[0]?.totalAmount || 0) / monthlyTarget) * 100
+          ),
+          100
+        )
+      : 0
 
     // Calculate miss opportunity percentage
-    const totalOpportunities = (monthlyWonResult[0]?.count || 0) + (monthlyLostResult[0]?.count || 0);
-    const missPercentage = totalOpportunities ? 
-      Math.round(((monthlyLostResult[0]?.count || 0) / totalOpportunities) * 100) : 0;
+    const totalOpportunities =
+      (monthlyWonResult[0]?.count || 0) + (monthlyLostResult[0]?.count || 0)
+    const missPercentage = totalOpportunities
+      ? Math.round(
+          ((monthlyLostResult[0]?.count || 0) / totalOpportunities) * 100
+        )
+      : 0
 
     return {
       yearlySales: {
@@ -388,12 +470,12 @@ const calculateSalesMetrics = async (user) => {
         percentage: missPercentage,
         currency: '₹'
       }
-    };
+    }
   } catch (error) {
-    console.error('Error calculating sales metrics:', error);
-    throw new Error('Failed to calculate sales metrics');
+    console.error('Error calculating sales metrics:', error)
+    throw new Error('Failed to calculate sales metrics')
   }
-};
+}
 
 const leadSourceMetricsss = async (start, end, user) => {
   
@@ -453,10 +535,10 @@ const leadSourceMetricsss = async (start, end, user) => {
   const getPaymentsOverview = async (user) => {
     try {
       // Get current date info
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth();
-  
+      const currentDate = new Date()
+      const currentYear = currentDate.getFullYear()
+      const currentMonth = currentDate.getMonth()
+
       // Get won and loss status IDs
       const [wonStatusIds, lossStatusIds] = await Promise.all([
         LeadStatusModel.find({
@@ -467,15 +549,13 @@ const leadSourceMetricsss = async (start, end, user) => {
           companyId: user.companyId,
           lossStatus: true
         }).distinct('_id')
-      ]);
-  
-   
-  
+      ])
+
       // Generate last 12 months
-      const months = [];
+      const months = []
       for (let i = 11; i >= 0; i--) {
-        const date = new Date(currentYear, currentMonth - i, 1);
-        const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        const date = new Date(currentYear, currentMonth - i, 1)
+        const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1)
         const endOfMonth = new Date(
           date.getFullYear(),
           date.getMonth() + 1,
@@ -484,21 +564,40 @@ const leadSourceMetricsss = async (start, end, user) => {
           59,
           59,
           999
-        );
-  
+        )
+
         months.push({
           month: date.toLocaleString('default', { month: 'short' }),
           startDate: startOfMonth,
           endDate: endOfMonth
-        });
+        })
       }
-  
+
       // Base query for filtering by company and user role
-      const baseQuery = { companyId: user.companyId };
+      const baseQuery = { companyId: user.companyId }
+      // Add user filter based on role
       if (user.role !== userRoles.SUPER_ADMIN) {
-        baseQuery.userId = user._id;
+        if (user.role === userRoles.TEAM_ADMIN) {
+          // For Team Leader - show their own data AND their team members' data
+          const query = {
+            $or: [
+              { assignedAgent: user._id }, // TL's own assignments
+              {
+                assignedAgent: {
+                  $in: await UserModel.distinct('_id', { assignedTL: user._id })
+                }
+              } // Team members' assignments
+            ]
+          }
+          baseQuery = { ...baseQuery, ...query }
+          previousQuery = { ...previousQuery, ...query }
+        } else {
+          // For regular users - only show their own data
+          baseQuery.assignedAgent = user._id
+          previousQuery.assignedAgent = user._id
+        }
       }
-  
+
       // Aggregate data for each month
       const monthlyData = await Promise.all(
         months.map(async ({ month, startDate, endDate }) => {
@@ -521,7 +620,7 @@ const leadSourceMetricsss = async (start, end, user) => {
                 }
               }
             ]),
-  
+
             // Get lost leads
             LeadModel.aggregate([
               {
@@ -539,52 +638,59 @@ const leadSourceMetricsss = async (start, end, user) => {
                 }
               }
             ])
-          ]);
-  
+          ])
+
           return {
             month,
             received: wonLeads[0]?.count || 0,
             loss: lostLeads[0]?.count || 0,
             receivedAmount: wonLeads[0]?.total || 0,
-            lossAmount: lostLeads[0]?.total || 0,
-          };
+            lossAmount: lostLeads[0]?.total || 0
+          }
         })
-      );
-  
+      )
+
       // Calculate totals
       const totals = monthlyData.reduce(
         (acc, curr) => {
-          acc.totalReceived += curr.receivedAmount;
-          acc.totalLoss += curr.lossAmount;
-          return acc;
+          acc.totalReceived += curr.receivedAmount
+          acc.totalLoss += curr.lossAmount
+          return acc
         },
         { totalReceived: 0, totalLoss: 0 }
-      );
-  
+      )
+
       // Get current month data for percentage calculations
-      const currentMonthData = monthlyData[monthlyData.length - 1];
-      const previousMonthData = monthlyData[monthlyData.length - 2] || { received: 0, loss: 0 };
-  
+      const currentMonthData = monthlyData[monthlyData.length - 1]
+      const previousMonthData = monthlyData[monthlyData.length - 2] || {
+        received: 0,
+        loss: 0
+      }
+
       // Calculate percentage changes
-      const receivedPercentChange = previousMonthData.received ? 
-        ((currentMonthData.received - previousMonthData.received) / previousMonthData.received) * 100 : 0;
-      const lossPercentChange = previousMonthData.loss ? 
-        ((currentMonthData.loss - previousMonthData.loss) / previousMonthData.loss) * 100 : 0;
-  
+      const receivedPercentChange = previousMonthData.received
+        ? ((currentMonthData.received - previousMonthData.received) /
+            previousMonthData.received) *
+          100
+        : 0
+      const lossPercentChange = previousMonthData.loss
+        ? ((currentMonthData.loss - previousMonthData.loss) /
+            previousMonthData.loss) *
+          100
+        : 0
+
       return {
         chartData: monthlyData,
         summary: {
           receivedLeads: totals.totalReceived,
-          lostLeads: totals.totalLoss,
-          
+          lostLeads: totals.totalLoss
         }
-      };
-  
+      }
     } catch (error) {
-      console.error('Error in getPaymentsOverview:', error);
-      throw new Error('Failed to fetch overview data');
+      console.error('Error in getPaymentsOverview:', error)
+      throw new Error('Failed to fetch overview data')
     }
-  };
+  }
 
  
   const getEmployeePerformance = async (start, end, user) => {
@@ -592,13 +698,31 @@ const leadSourceMetricsss = async (start, end, user) => {
       // Base query
       const baseQuery = {
         companyId: user.companyId
-      };
-  
-      // If not admin, only show current user's data
-      if (user.role !== userRoles.SUPER_ADMIN) {
-        baseQuery.assignedAgent = user._id;
       }
-  
+
+      // Add user filter based on role
+      if (user.role !== userRoles.SUPER_ADMIN) {
+        if (user.role === userRoles.TEAM_ADMIN) {
+          // For Team Leader - show their own data AND their team members' data
+          const query = {
+            $or: [
+              { assignedAgent: user._id }, // TL's own assignments
+              {
+                assignedAgent: {
+                  $in: await UserModel.distinct('_id', { assignedTL: user._id })
+                }
+              } // Team members' assignments
+            ]
+          }
+          baseQuery = { ...baseQuery, ...query }
+          previousQuery = { ...previousQuery, ...query }
+        } else {
+          // For regular users - only show their own data
+          baseQuery.assignedAgent = user._id
+          previousQuery.assignedAgent = user._id
+        }
+      }
+
       // Get won and loss status IDs
       const [wonStatusIds, lossStatusIds] = await Promise.all([
         LeadStatusModel.find({
@@ -609,8 +733,8 @@ const leadSourceMetricsss = async (start, end, user) => {
           companyId: user.companyId,
           lossStatus: true
         }).distinct('_id')
-      ]);
-  
+      ])
+
       // Get employee performance metrics
       const performanceMetrics = await LeadModel.aggregate([
         {
@@ -652,7 +776,7 @@ const leadSourceMetricsss = async (start, end, user) => {
                 $filter: {
                   input: '$leads',
                   as: 'lead',
-                  cond: { 
+                  cond: {
                     $or: [
                       { $in: ['$$lead.leadStatus', wonStatusIds] },
                       { $in: ['$$lead.leadStatus', lossStatusIds] }
@@ -666,7 +790,7 @@ const leadSourceMetricsss = async (start, end, user) => {
                 $filter: {
                   input: '$leads',
                   as: 'lead',
-                  cond: { 
+                  cond: {
                     $and: [
                       { $not: [{ $in: ['$$lead.leadStatus', wonStatusIds] }] },
                       { $not: [{ $in: ['$$lead.leadStatus', lossStatusIds] }] }
@@ -699,16 +823,20 @@ const leadSourceMetricsss = async (start, end, user) => {
                 0,
                 {
                   $multiply: [
-                    { $divide: [
-                      { $size: {
-                        $filter: {
-                          input: '$leads',
-                          as: 'lead',
-                          cond: { $in: ['$$lead.leadStatus', wonStatusIds] }
-                        }
-                      }},
-                      '$assignedLeads'
-                    ]},
+                    {
+                      $divide: [
+                        {
+                          $size: {
+                            $filter: {
+                              input: '$leads',
+                              as: 'lead',
+                              cond: { $in: ['$$lead.leadStatus', wonStatusIds] }
+                            }
+                          }
+                        },
+                        '$assignedLeads'
+                      ]
+                    },
                     100
                   ]
                 }
@@ -720,38 +848,38 @@ const leadSourceMetricsss = async (start, end, user) => {
           $project: {
             _id: 0,
             agent: '$userInfo.name',
-           // leadFirstName: { $arrayElemAt: ['$firstNames', 0] },
-          //  leadLastName: { $arrayElemAt: ['$lastNames', 0] },
+            // leadFirstName: { $arrayElemAt: ['$firstNames', 0] },
+            //  leadLastName: { $arrayElemAt: ['$lastNames', 0] },
             assignedLeads: 1,
             closed: '$closedLeads',
             open: '$openLeads',
             failed: '$failedLeads',
             totalRevenue: 1,
-            conversion: { 
-              $toString: { 
-                $round: ['$conversion', 2] 
+            conversion: {
+              $toString: {
+                $round: ['$conversion', 2]
               }
             },
-            isOnline: { $ifNull: ['$userInfo.isOnline', false] },
+            isOnline: { $ifNull: ['$userInfo.isOnline', false] }
             // email: '$userInfo.email',
             // phone: '$userInfo.phone'
           }
-        },  
+        },
         {
           $sort: { assignedLeads: -1 }
         }
-      ]);
-  
+      ])
+
       // Format the revenue and conversion after aggregation
-      const formattedMetrics = performanceMetrics.map(metric => ({
+      const formattedMetrics = performanceMetrics.map((metric) => ({
         ...metric,
         revenue: `${metric.totalRevenue}`,
         conversion: `${metric.conversion}%`
-      }));
-  
-      return formattedMetrics;
+      }))
+
+      return formattedMetrics
     } catch (error) {
-      console.error('Error in getEmployeePerformance:', error);
-      throw error;
+      console.error('Error in getEmployeePerformance:', error)
+      throw error
     }
-  };
+  }

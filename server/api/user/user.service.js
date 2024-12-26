@@ -125,7 +125,7 @@ exports.createAdminWithCompany = async ({companyData, userData, ipaddress},user)
 
 
 
-exports.createSupportUser = async ({name, email, role, password,phone,isActive }, user) => {
+exports.createSupportUser = async ({name, email, role, password,phone,isActive,assignedTL }, user) => {
   try {   
     let emailExists = await UserModel.find({ email }).lean()
     if (emailExists.length) throw 'Email already exists!'
@@ -138,6 +138,7 @@ exports.createSupportUser = async ({name, email, role, password,phone,isActive }
       email,
       role: role,
       phone,
+      assignedTL,
       isActive,
       hashedPassword: getHashedPassword(randPassword, userSalt),
       passowrdExpiry: new Date(new Date().setDate(new Date().getDate() + 10)),
@@ -346,6 +347,7 @@ exports.listUsers = async ({ }, user) => {
         name: 1,
         email: 1,
         role: 1,
+        assignedTL: 1,
         companyId: 1,
         phone: 1,
         isEmailVerified: 1,
@@ -356,6 +358,7 @@ exports.listUsers = async ({ }, user) => {
       }
     );
   }
+  /////// for employees 
   if (user.role == userRoles.USER) {
     return UserModel.find(
       {
@@ -366,6 +369,31 @@ exports.listUsers = async ({ }, user) => {
         name: 1,
         email: 1,
         role: 1,
+        companyId: 1,
+        phone: 1,
+        isEmailVerified: 1,
+        isMobileVerified: 1,
+        isActive: 1,
+        deleted: 1,
+        createdAt: 1,
+      }
+    );
+  }
+/////// for Team Leader 
+  if(user.role == userRoles.TEAM_ADMIN){
+    return UserModel.find(
+      {
+        companyId: user.companyId,
+        $or: [
+          { assignedTL: user._id },  // Get all team members
+          { _id: user._id }          // Get team leader's own profile
+        ]
+      },
+      {
+        name: 1,
+        email: 1,
+        role: 1,
+        assignedTL: 1,
         companyId: 1,
         phone: 1,
         isEmailVerified: 1,

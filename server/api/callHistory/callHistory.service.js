@@ -5,6 +5,7 @@ const { report } = require('./callHistory.route');
 const UserModel = require('../user/user.model');
 const LeadModel=require('../lead/lead.model');
 const LeadStatusModel=require('../leadStatus/leadStatus.model');
+const userRoles = require('../../config/constants/userRoles')
 exports.saveCallHistory = async (data, user) => {
     try {
         const callRecords = await Promise.all(
@@ -223,10 +224,24 @@ async function getcallreportlist(startDate, endDate, user) {
     let userQuery = {
         companyId: user.companyId
     };
-    // If user is not admin, only show their own data
-    if (user.role !== 'Super Admin') {
+   
+    // If user is not admin, apply role-based filters
+if (user.role !== userRoles.SUPER_ADMIN) {
+    if (user.role === userRoles.TEAM_ADMIN) {
+        // For Team Leader - show their own data AND their team members
+        userQuery.$or = [
+            { _id: user._id },              // Team Leader themselves
+            { assignedTL: user._id }        // Their team members
+        ];
+    } else {
+        // For regular users - only show their own data
         userQuery._id = user._id;
     }
+}
+
+
+
+
     // Get all relevant users
     const users = await UserModel.find(userQuery).select('_id name role email phone');
 
