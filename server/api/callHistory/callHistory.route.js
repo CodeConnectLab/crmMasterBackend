@@ -18,7 +18,7 @@ const express = require('express'),
 router.post(usersVersion + "/call-history",
     auth.isAuthenticated({
   }),
-  joiValidate(validationInputs.validateCallHistory, options),
+   joiValidate(validationInputs.validateCallHistory, options),
   controller.saveCallHistory);
 
 

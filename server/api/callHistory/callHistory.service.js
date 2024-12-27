@@ -41,11 +41,12 @@ exports.saveCallHistory = async (data, user) => {
         const newRecords = callRecords.filter(record => record !== null);
 
         if (newRecords.length === 0) {
+            console.log("No new calls to save")
             return { message: 'No new calls to save', savedCount: 0 };
         }
 
         const savedCalls = await callHistoryModel.insertMany(newRecords, { ordered: false });
-
+        console.log("savedCalls",savedCalls)
         return {
             message: `Successfully saved ${savedCalls.length} call records`,
             savedCount: savedCalls.length,
@@ -54,6 +55,7 @@ exports.saveCallHistory = async (data, user) => {
 
     } catch (error) {
         console.error('Error in saveCallHistory:', error);
+        console.log('Error in saveCallHistory:', error.message);
         return Promise.reject({
             success: false,
             message: error.message || 'Error saving call history',
