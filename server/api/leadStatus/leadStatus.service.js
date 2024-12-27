@@ -1,5 +1,5 @@
 const leadStatusModel = require('./leadStatus.model');
-
+const notificationModel= require('../notificationSetting/notificationSetting.model');
 
 exports.createLeadStatus = async ({  name, color }, user) => {
   try {
@@ -21,7 +21,7 @@ exports.createLeadStatus = async ({  name, color }, user) => {
     .sort('-order')
     .lean();
     // Create new product service
-    return leadStatusModel.create({
+    const leadStatus = await leadStatusModel.create({
       name,
       color,
       companyId: user.companyId,
@@ -29,6 +29,26 @@ exports.createLeadStatus = async ({  name, color }, user) => {
       createdBy: user._id,
       isActive: true
     });
+// Create notification settings for the new status
+await notificationModel.create({
+  statusId: leadStatus._id,
+  companyId: user.companyId,
+  createdBy: user._id,
+  isEnabled: false,
+  notificationTimes: [
+    { time: "09:00", isEnabled: true },
+    { time: "14:00", isEnabled: true },
+    { time: "18:00", isEnabled: true }
+  ],
+  recipients: {
+    admin: false,
+    teamLead: false,
+    regularUser: false
+  },
+  titleTemplate: `${name}: {title}`,
+  bodyTemplate: `Your ${name.toLowerCase()} {title} is scheduled for {time}. Location: {location}`
+});
+return leadStatus;
   } catch (error) {
     return Promise.reject(error);
   }
