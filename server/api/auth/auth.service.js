@@ -79,7 +79,7 @@ exports.logIn = async ({
             isEmailVerified: maybeUser.isEmailVerified || false,
             isMobileVerified: maybeUser.isMobileVerified || false,
             bio: maybeUser.bio,
-            profilePic:'https://crm.codeconnect.in/',
+            profilePic:maybeUser?.profilePic,
             company: {
               id: maybeUser.companyId._id,
               name: maybeUser.companyId.name,

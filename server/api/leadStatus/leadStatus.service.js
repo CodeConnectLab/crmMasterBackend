@@ -235,6 +235,36 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
             session
           }
         ).lean();
+
+
+        // Check if notification settings exist for this status
+      const existingNotification = await notificationModel.findOne({
+        statusId: contentId,
+        companyId: user.companyId
+      }).session(session);
+
+      // If notification settings don't exist, create them
+      if (!existingNotification) {
+        await notificationModel.create([{
+          statusId: contentId,
+          companyId: user.companyId,
+          createdBy: user._id,
+          isEnabled: false,
+          notificationTimes: [
+            { time: "09:00", isEnabled: true },
+            { time: "14:00", isEnabled: true },
+            { time: "18:00", isEnabled: true }
+          ],
+          recipients: {
+            admin: false,
+            teamLead: false,
+            regularUser: false
+          },
+          titleTemplate: `${updatedStatus.name}: {title}`,
+          bodyTemplate: `Your ${updatedStatus.name.toLowerCase()} {title} is scheduled for {time}. Location: {location}`
+        }], { session });
+      }
+
   
         // Commit the transaction
         await session.commitTransaction();

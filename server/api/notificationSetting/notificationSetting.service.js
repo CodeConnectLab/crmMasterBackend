@@ -7,12 +7,14 @@ exports.getNotificationList = async ({},user) => {
       if (!user?.companyId) {
         throw new Error('Company ID is required');
       }
-  
       return notificationModel.find({
         companyId: user.companyId,
         //deleted: false
+      }).populate({
+        path: 'statusId',
+        select: 'name',
+        model: 'LeadStatus'
       })
-    //   .sort('order')
       .lean();
   
     } catch (error) {

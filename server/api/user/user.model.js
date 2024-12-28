@@ -23,8 +23,8 @@ const UserSchema = new Schema({
   role: {
     type: String,
     required: true,
-    enum: ['Super Admin', 'User', 'Team Admin'],
-    default: 'User'
+    enum: ['Super Admin', 'Employee', 'Team Leader'],
+    default: 'Employee'
   },
   companyId: {
     type: mongoose.Schema.Types.ObjectId,
