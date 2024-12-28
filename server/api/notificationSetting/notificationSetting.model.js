@@ -16,7 +16,11 @@ const notificationSettingSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  notificationTimes: [{
+  useFollowUpTime: {
+    type: Boolean,
+    default: true
+  },
+  notificationCustomTime: [{
     time: {
       type: String,
       required: true,
@@ -25,7 +29,7 @@ const notificationSettingSchema = new mongoose.Schema({
     },
     isEnabled: {
       type: Boolean,
-      default: true
+      default: false
     }
   }],
   recipients: {
@@ -69,3 +73,4 @@ notificationSettingSchema.pre('save', function(next) {
 const NotificationSettings = mongoose.model('NotificationSettings', notificationSettingSchema);
 
 module.exports = NotificationSettings;
+

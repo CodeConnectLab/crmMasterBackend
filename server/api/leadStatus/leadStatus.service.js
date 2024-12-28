@@ -35,10 +35,9 @@ await notificationModel.create({
   companyId: user.companyId,
   createdBy: user._id,
   isEnabled: false,
-  notificationTimes: [
-    { time: "09:00", isEnabled: true },
-    { time: "14:00", isEnabled: true },
-    { time: "18:00", isEnabled: true }
+  useFollowUpTime: true,
+  notificationCustomTime: [
+    { time: "09:00", isEnabled: false }
   ],
   recipients: {
     admin: false,
@@ -250,10 +249,9 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
           companyId: user.companyId,
           createdBy: user._id,
           isEnabled: false,
-          notificationTimes: [
-            { time: "09:00", isEnabled: true },
-            { time: "14:00", isEnabled: true },
-            { time: "18:00", isEnabled: true }
+          useFollowUpTime: true,
+          notificationCustomTime: [
+            { time: "09:00", isEnabled: true }
           ],
           recipients: {
             admin: false,
