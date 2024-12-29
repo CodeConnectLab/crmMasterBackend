@@ -7,3 +7,10 @@ exports.getNotificationList=(req,res,next)=>{
     .then(result => responseHandler.success(res, result, "Get List successful!", 200))
     .catch(error => responseHandler.error(res, error, error.message, 500));
 };
+
+
+exports.updateNotification=(req,res,next)=>{
+    return service.updateNotificationSettings(req.params, req.body, req.user)
+    .then(result => responseHandler.success(res, result, "Get List successful!", 200))
+    .catch(error => responseHandler.error(res, error, error.message, 500));
+};

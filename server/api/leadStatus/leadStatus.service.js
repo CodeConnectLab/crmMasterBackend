@@ -251,7 +251,7 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
           isEnabled: false,
           useFollowUpTime: true,
           notificationCustomTime: [
-            { time: "09:00", isEnabled: true }
+            { time: "09:00", isEnabled: false }
           ],
           recipients: {
             admin: false,

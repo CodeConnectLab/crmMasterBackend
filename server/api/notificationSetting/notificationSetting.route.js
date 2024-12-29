@@ -18,4 +18,11 @@ router.get(usersVersion + "/getNotificationList",
     controller.getNotificationList);
 
 
+    router.put(usersVersion + "/updateNotification/:id",
+        auth.isAuthenticated({
+            // adminOnly: true
+        }),
+        controller.updateNotification);
+
+
     module.exports = router;

@@ -20,6 +20,10 @@ const notificationSettingSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  time: {
+    type: Number,  /////////it will be in minute
+    default: 2
+  },
   notificationCustomTime: [{
     time: {
       type: String,

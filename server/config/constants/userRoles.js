@@ -1,6 +1,6 @@
 module.exports = {
     SUPER_ADMIN: "Super Admin",
-    USER: "User",
+    USER: "Employee",
     // SUPPORT: "Support",
     TEAM_ADMIN: "Team Leader"
 }

@@ -75,6 +75,12 @@ const UserSchema = new Schema({
   ipaddress: {
     type: String
   },
+  fcmMobileToken:{
+    type: String
+  },
+  fcmWebToken:{
+    type: String
+  },
   bio: {
     type: String
   },

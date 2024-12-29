@@ -12,9 +12,10 @@ exports.logIn = async ({
     email,
     phone,
     password,
-    otp
+    otp,
+    fcmMobileToken,
+    fcmWebToken
   }) => {
-    console.log('email', email);
     try {
       if (!otp && !password) throw 'Credentials missing!';
   
@@ -63,6 +64,8 @@ exports.logIn = async ({
       // Update last login
       await userModel.findByIdAndUpdate(maybeUser._id, {
         $set: {
+          fcmMobileToken,
+          fcmWebToken,
           lastLogin: new Date(),
           loginAttempts: 0
         }
@@ -80,6 +83,8 @@ exports.logIn = async ({
             isMobileVerified: maybeUser.isMobileVerified || false,
             bio: maybeUser.bio,
             profilePic:maybeUser?.profilePic,
+            fcmMobileToken:maybeUser?.fcmMobileToken,
+            fcmWebToken:maybeUser?.fcmWebToken,
             company: {
               id: maybeUser.companyId._id,
               name: maybeUser.companyId.name,
