@@ -13,7 +13,8 @@ exports.validateLogIn = {
         'string.email': 'Please provide a valid email address',
       })
       .email(),
-
+    fcmMobileToken:Joi.string().allow('', null).optional(),
+    fcmWebToken:Joi.string().allow('', null).optional(),
     phone: Joi.string()
       .pattern(/^[+]?[\d\s-]+$/)
       .messages({
