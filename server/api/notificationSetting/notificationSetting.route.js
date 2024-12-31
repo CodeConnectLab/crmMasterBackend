@@ -26,10 +26,10 @@ router.get(usersVersion + "/getNotificationList",
 
 
    ///////  menualy send push notification
-   router.post(usersVersion + "/manuallySendNotification",
-    auth.isAuthenticated({
-        // adminOnly: true
-    }),
-    controller.manuallySendNotification);   
+//    router.post(usersVersion + "/manuallySendNotification",
+//     auth.isAuthenticated({
+//         // adminOnly: true
+//     }),
+//     controller.manuallySendNotification);   
 
     module.exports = router;

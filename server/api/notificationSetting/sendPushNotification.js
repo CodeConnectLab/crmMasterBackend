@@ -207,7 +207,7 @@ async function sendNotificationsForLead(notification, lead) {
   try {
     // Get recipient users based on settings
     const users = await getRecipientUsers(notification, lead);
-    // console.log(`Found ${users.length} recipients for lead ${lead._id}`);
+     console.log(`Found ${users.length} recipients for lead ${lead._id}`);
 
     // Send notifications to each user
     for (const user of users) {

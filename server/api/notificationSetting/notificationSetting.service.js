@@ -1,14 +1,14 @@
 const notificationModel = require('./notificationSetting.model')
 const mongoose = require('mongoose')
 
-const admin = require('firebase-admin');
+// const admin = require('firebase-admin');
 
-// Initialize Firebase Admin
-const serviceAccount = require('./serviceAccountKey.json');
+// // Initialize Firebase Admin
+// const serviceAccount = require('./serviceAccountKey.json');
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount),
+// });
 
 
 exports.getNotificationList = async ({}, user) => {
@@ -98,27 +98,27 @@ exports.updateNotificationSettings = async (
   }
 }
 
-exports.manuallySendNotification = async ({ token, title, message }, user) => {
-  if (!token || !title || !message) {
-    return 'Missing required fields';
-  }
+// exports.manuallySendNotification = async ({ token, title, message }, user) => {
+//   if (!token || !title || !message) {
+//     return 'Missing required fields';
+//   }
 
-  // Correct payload structure
-  const payload = {
-    token: token,  // Token directly at the root level
-    notification: {
-      title: title,
-      body: message,
-    },
-  };
+//   // Correct payload structure
+//   const payload = {
+//     token: token,  // Token directly at the root level
+//     notification: {
+//       title: title,
+//       body: message,
+//     },
+//   };
 
-  try {
-    await admin.messaging().send(payload);
-    return 'Notification sent!';
-  } catch (error) {
-    console.error('Error sending notification:', error);
-    console.error('Token causing error:', token);
-    return `Error: ${error.message}`;
-  }
-};
+//   try {
+//     await admin.messaging().send(payload);
+//     return 'Notification sent!';
+//   } catch (error) {
+//     console.error('Error sending notification:', error);
+//     console.error('Token causing error:', token);
+//     return `Error: ${error.message}`;
+//   }
+// };
 
