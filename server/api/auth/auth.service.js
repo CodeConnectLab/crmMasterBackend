@@ -96,8 +96,11 @@ exports.logIn = async ({
                 status: maybeUser.companyId.subscription?.status || 'trial',
                 features: maybeUser.companyId.subscription?.features || []
               }
-            }
+            }, 
           },
+          androidVersion : "v1.0.0",
+          iosversion : "v1.0.0",
+          mobileApkDownlodeLink:'https://crm.page.codeconnect.in/app-download',
           token: token.token,
           refreshToken: refreshToken.token
         }

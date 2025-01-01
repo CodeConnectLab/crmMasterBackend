@@ -25,11 +25,41 @@ router.get(usersVersion + "/getNotificationList",
         controller.updateNotification);
 
 
-   ///////  menualy send push notification
-//    router.post(usersVersion + "/manuallySendNotification",
-//     auth.isAuthenticated({
-//         // adminOnly: true
-//     }),
-//     controller.manuallySendNotification);   
+   /////  menualy send push notification
+   router.post(usersVersion + "/manuallySendNotification",
+    auth.isAuthenticated({
+        // adminOnly: true
+    }),
+    controller.manuallySendNotification);   
+
+    //////////// get notification list of user 
+    router.get(usersVersion + "/getNotificationListOfUser",
+        auth.isAuthenticated({
+            // adminOnly: true
+        }),
+        controller.getNotificationListOfUser); 
+
+        /////////////save notification
+        router.post(usersVersion + "/saveNotificationListOfUser",
+            auth.isAuthenticated({
+                // adminOnly: true
+            }),
+            controller.saveNotificationListOfUser);
+
+            ///////// get notification for  movile and web
+            router.get(usersVersion + "/getNotification",
+                auth.isAuthenticated({
+                    // adminOnly: true
+                }),
+                controller.getNotification);
+//////////////// update seen notificatio
+
+                router.put(usersVersion + "/seenUpdate",
+                    auth.isAuthenticated({
+                        // adminOnly: true
+                    }),
+                    controller.seenUpdate);
+
+
 
     module.exports = router;

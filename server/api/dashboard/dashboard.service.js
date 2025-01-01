@@ -56,7 +56,10 @@ exports.getDashboardMetrics = async (params, user) => {
         performanceMetrics,
         leadSourceMetricss,
         paymentOverview,
-        employeePerformance
+        employeePerformance,
+        androidVersion : "v1.0.0",
+        iosversion : "v1.0.0",
+        mobileApkDownlodeLink:'https://crm.page.codeconnect.in/app-download',
       }
     } catch (error) {
         console.error('Dashboard Metrics Error:', error);

@@ -5,11 +5,11 @@ const companyUpdateValidation = Joi.object({
     .min(2)
     .max(100)
     .trim()
-    .required()
+    // .required()
     .messages({
       'string.min': 'Company name must be at least 2 characters long',
       'string.max': 'Company name cannot exceed 100 characters',
-      'any.required': 'Company name is required'
+      // 'any.required': 'Company name is required'
     }),
 
   industry: Joi.string()
@@ -64,8 +64,8 @@ const companyUpdateValidation = Joi.object({
   logo: Joi.string()
     .allow('', null),
 
-  size: Joi.string()
-    .valid('small', 'medium', 'large', 'enterprise')
+  size: Joi.number()
+   // .valid('small', 'medium', 'large', 'enterprise')
     .allow('', null),
 
   taxId: Joi.string()

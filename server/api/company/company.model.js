@@ -97,8 +97,8 @@ const companySchema = new Schema({
     type: String
   },
   size: {
-    type: String,
-    enum: ['small', 'medium', 'large', 'enterprise']
+    type: Number,
+    // enum: ['small', 'medium', 'large', 'enterprise']
   },
   taxId: {
     type: String,

@@ -1,14 +1,16 @@
 const notificationModel = require('./notificationSetting.model')
 const mongoose = require('mongoose')
+const Modelnotification=require('./notification.model')
+const admin = require('firebase-admin');
+const UserModel=require('../user/user.model')
 
-// const admin = require('firebase-admin');
+// Initialize Firebase Admin
+const serviceAccount = require('./serviceAccountKey.json');
+const { tryEach } = require('async');
 
-// // Initialize Firebase Admin
-// const serviceAccount = require('./serviceAccountKey.json');
-
-// admin.initializeApp({
-//   credential: admin.credential.cert(serviceAccount),
-// });
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 
 exports.getNotificationList = async ({}, user) => {
@@ -98,27 +100,110 @@ exports.updateNotificationSettings = async (
   }
 }
 
-// exports.manuallySendNotification = async ({ token, title, message }, user) => {
-//   if (!token || !title || !message) {
-//     return 'Missing required fields';
-//   }
 
-//   // Correct payload structure
-//   const payload = {
-//     token: token,  // Token directly at the root level
-//     notification: {
-//       title: title,
-//       body: message,
-//     },
-//   };
+exports.manuallySendNotification = async ({ token, title, message }, user) => {
+    console.log("user",user)
+  if (!token || !title || !message) {
+    return 'Missing required fields';
+  }
 
-//   try {
-//     await admin.messaging().send(payload);
-//     return 'Notification sent!';
-//   } catch (error) {
-//     console.error('Error sending notification:', error);
-//     console.error('Token causing error:', token);
-//     return `Error: ${error.message}`;
-//   }
-// };
+  // Correct payload structure
+  const payload = {
+    token: token,  // Token directly at the root level
+    notification: {
+      title: title,
+      body: message,
+    },
+  };
+
+  try {
+    await admin.messaging().send(payload);
+    return 'Notification sent!';
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    console.error('Token causing error:', token);
+    return `Error: ${error.message}`;
+  }
+};
+
+
+
+
+///////  get notification list of user
+exports.getNotificationListOfUser = async ({},user) => {
+  try {
+      return  await Modelnotification.find({ userId: user._id }).sort({ createdAt: -1 });
+  } catch (error) {
+    return Promise.reject(error)
+  }
+
+}
+
+
+//////////  save notification list of user
+exports.saveNotificationListOfUser = async ({ titleTemplate ,bodyTemplate ,userId }, user) => {
+  if (!titleTemplate || !bodyTemplate) {
+    return 'Missing required fields';
+  } 
+    const getUser=await UserModel.findOne({_id:userId});
+   // console.log("getUser",getUser?.fcmMobileToken)
+   
+        const notification = Modelnotification.create({titleTemplate,bodyTemplate,userId,companyId:user.companyId});
+
+  try {
+    // Correct payload structure
+  const payload = {
+    token: getUser.fcmMobileToken,  // Token directly at the root level
+    notification: {
+      title: titleTemplate,
+      body: bodyTemplate,
+    },
+  };
+  
+    await admin.messaging().send(payload);
+    return notification;
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    console.error('Token causing error:', token);
+    return `Error: ${error.message}`;
+  }
+}
+
+///////// getnotification for mobile and web
+exports.getNotification=async({},user)=>{
+  try {
+    return await Modelnotification.find({ userId: user._id }).sort({ createdAt: -1 });
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
+exports.seenUpdate = async ({ notificationIds }, user) => {
+  try {
+    // Validate input
+    if (!Array.isArray(notificationIds) || notificationIds.length === 0) {
+      throw new Error("Invalid notificationIds. It should be a non-empty array.");
+    }
+
+    // Update the notifications in the database
+    const result = await Modelnotification.updateMany(
+      { 
+        _id: { $in: notificationIds }, // Match notifications by their IDs
+        userId: user._id              // Ensure they belong to the logged-in user
+      },
+      { $set: { seenStatus: true } }  // Update the `seenStatus` to true
+    );
+
+    // Return success response
+    return {
+      message: `${result.modifiedCount} notifications marked as seen`,
+    };
+  } catch (error) {
+    // Return error response
+    return Promise.reject(error);
+  }
+};
+
+
+
 
