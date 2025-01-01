@@ -533,10 +533,10 @@ const leadSourceMetricsss = async (start, end, user) => {
      
     
         total: totalLeads,
-        sources: leadSourceStats.map(source => ({
+        sources: leadSourceStats.map((source, index) => ({ // Include index parameter
           name: source.name,
           value: source.value,
-          color: source.color || predefinedColors[index % predefinedColors.length], // Use predefined colors
+          color: source.color || predefinedColors[index % predefinedColors.length], // Assign colors
           percentage: ((source.value / totalLeads) * 100).toFixed(2)
         }))
     
