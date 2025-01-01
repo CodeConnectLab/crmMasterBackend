@@ -258,21 +258,21 @@ const activityMetricss = async (start, end, user) => {
     const todayCount = await LeadModel.countDocuments({
       ...baseQuery,
       leadStatus: status._id,
-      followUpDate: { $gte: today, $lte: endOfToday }
+     // followUpDate: { $gte: today, $lte: endOfToday }
     })
 
     // Count for tomorrow
-    const tomorrowCount = await LeadModel.countDocuments({
-      ...baseQuery,
-      leadStatus: status._id,
-      followUpDate: { $gte: tomorrow, $lte: endOfTomorrow }
-    })
+    // const tomorrowCount = await LeadModel.countDocuments({
+    //   ...baseQuery,
+    //   leadStatus: status._id,
+    //   followUpDate: { $gte: tomorrow, $lte: endOfTomorrow }
+    // })
 
     return {
       title: status.name,
       color: status.color || '#000000',
       today: todayCount,
-      tomorrow: tomorrowCount,
+      tomorrow: '',
       leadStatus: status._id,
       route: 'https://crm.codeconnect.in/leadspage'
     }
@@ -520,7 +520,15 @@ const leadSourceMetricsss = async (start, end, user) => {
       }
     ]);
     const totalLeads = leadSourceStats.reduce((sum, source) => sum + source.value, 0);
-  
+    const predefinedColors = [
+      '#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#A133FF',
+      '#FFC300', '#FF5733', '#DAF7A6', '#C70039', '#900C3F',
+      '#581845', '#2ECC71', '#3498DB', '#9B59B6', '#F1C40F',
+      '#E74C3C', '#1ABC9C', '#2C3E50', '#16A085', '#8E44AD',
+      '#D35400', '#27AE60', '#2980B9', '#34495E', '#E67E22',
+      '#F39C12', '#BDC3C7', '#7F8C8D', '#95A5A6', '#ECF0F1'
+    ];
+    
     return {
      
     
@@ -528,7 +536,7 @@ const leadSourceMetricsss = async (start, end, user) => {
         sources: leadSourceStats.map(source => ({
           name: source.name,
           value: source.value,
-          color: source.color || '#000000', // Fallback color if not defined
+          color: source.color || predefinedColors[index % predefinedColors.length], // Use predefined colors
           percentage: ((source.value / totalLeads) * 100).toFixed(2)
         }))
     
