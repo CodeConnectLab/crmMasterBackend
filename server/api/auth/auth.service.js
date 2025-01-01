@@ -25,7 +25,7 @@ exports.logIn = async ({
         .populate({
           path: 'companyId',
           model: 'company', // Make sure this matches the model name
-          select: 'code name status subscription'
+          //select: 'code name status subscription'
         })
         .lean();
   
@@ -70,7 +70,6 @@ exports.logIn = async ({
           loginAttempts: 0
         }
       });
-  
       return {
          user: {
             _id: maybeUser._id,
@@ -85,18 +84,7 @@ exports.logIn = async ({
             profilePic:maybeUser?.profilePic,
             fcmMobileToken:maybeUser?.fcmMobileToken,
             fcmWebToken:maybeUser?.fcmWebToken,
-            company: {
-              id: maybeUser.companyId._id,
-              name: maybeUser.companyId.name,
-              code: maybeUser.companyId.code,
-              subscription: {
-                plan: maybeUser.companyId.subscription?.plan || 'free',
-                startDate: maybeUser.companyId.subscription?.startDate,
-                endDate: maybeUser.companyId.subscription?.endDate,
-                status: maybeUser.companyId.subscription?.status || 'trial',
-                features: maybeUser.companyId.subscription?.features || []
-              }
-            }, 
+            company:maybeUser?.companyId
           },
           androidVersion : "v1.0.0",
           iosversion : "v1.0.0",
