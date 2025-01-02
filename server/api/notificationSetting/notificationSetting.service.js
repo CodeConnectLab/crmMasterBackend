@@ -6,11 +6,11 @@ const UserModel=require('../user/user.model')
 
 // Initialize Firebase Admin
 const serviceAccount = require('./serviceAccountKey.json');
-const { tryEach } = require('async');
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount),
+// });
 
 
 exports.getNotificationList = async ({}, user) => {
@@ -117,7 +117,7 @@ exports.manuallySendNotification = async ({ token, title, message }, user) => {
   };
 
   try {
-    await admin.messaging().send(payload);
+    //await admin.messaging().send(payload);
     return 'Notification sent!';
   } catch (error) {
     console.error('Error sending notification:', error);
@@ -160,7 +160,7 @@ exports.saveNotificationListOfUser = async ({ titleTemplate ,bodyTemplate ,userI
     },
   };
   
-    await admin.messaging().send(payload);
+    //await admin.messaging().send(payload);
     return notification;
   } catch (error) {
     console.error('Error sending notification:', error);

@@ -38,11 +38,11 @@ await notificationModel.create({
   useFollowUpTime: true,
   notificationCustomTime: [
     { time: "09:00", isEnabled: false }
-  ],
+  ],    
   recipients: {
     admin: false,
     teamLead: false,
-    regularUser: false
+    regularUser: true
   },
   titleTemplate: `${name}: {title}`,
   bodyTemplate: `Your ${name.toLowerCase()} {title} is scheduled for {time}. Location: {location}`
@@ -256,7 +256,7 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
           recipients: {
             admin: false,
             teamLead: false,
-            regularUser: false
+            regularUser: true
           },
           titleTemplate: `${updatedStatus.name}: {title}`,
           bodyTemplate: `Your ${updatedStatus.name.toLowerCase()} {title} is scheduled for {time}. Location: {location}`

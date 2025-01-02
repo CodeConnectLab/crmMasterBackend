@@ -10,7 +10,7 @@ var mongoose = require('mongoose');
 /////////// this for notification
 const { initializeNotificationScheduler, refreshSchedules } = require('../server/api/notificationSetting/sendPushNotification');
 // Initialize when app starts
-//  initializeNotificationScheduler();
+ initializeNotificationScheduler();
 /////////// this for notification
 
 // load all variable from .env file to system enviornment
