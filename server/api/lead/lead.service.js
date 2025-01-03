@@ -422,8 +422,12 @@ const getAllFollowupLeadByCompanyWithPagination = async (
       // Base query with company and deleted condition
       let query = {
         companyId: companyId,
+        leadUpdated:true,
         leadStatus: { $in: statusIds } // Only include leads with status that have showFollowUp true
       }
+
+    ///skip if leadUpdated is false
+         
 
       // Add assignedAgent filter only for User role
       if (role !== userRoles.SUPER_ADMIN) {
@@ -977,6 +981,7 @@ exports.getLeadUpdate = async (id, data, user) => {
                 calanderMassage: data?.comment || null,
                 updatedBy: user._id,
                 updatedAt: new Date(),
+                leadUpdated:true,
             },
             { new: true },
         );

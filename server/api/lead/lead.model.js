@@ -88,6 +88,10 @@ const leadSchema = new mongoose.Schema({
     default: 'Insert',
     enum: ['Insert', 'Import', 'ThirdParty']
   },
+  leadUpdated:{
+    type:Boolean,
+    default:false
+  },
   leadWonAmount: {
     type: Number,
     default: 0,
