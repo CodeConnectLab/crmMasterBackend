@@ -93,7 +93,12 @@ exports.updateNotificationSettings = async (
       notificationObjectId,
       { $set: updateFields },
       { new: true, runValidators: true }
-    )
+    ).populate({
+      path: 'statusId',
+      select: 'name',
+      model: 'LeadStatus'
+    })
+    .lean()
     return updatedSettings
   } catch (error) {
     return Promise.reject(error)
