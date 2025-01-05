@@ -32,11 +32,11 @@ exports.logIn = async (res,{
 
         
         if (!maybeUser){
-          return res.status(200).json({ message: 'Invalid credentials' });
+          return res.status(500).json({ message: 'Invalid credentials' });
         }
         // Check if user is verified
         if (!maybeUser.isActive) {
-          return res.status(200).json({ message: 'User is not Active' });
+          return res.status(500).json({ message: 'User is not Active' });
         }
 
       // if (!maybeUser) throw "User doesn't exist";
@@ -47,11 +47,11 @@ exports.logIn = async (res,{
         let hashedPassword = getHashedPassword(password, maybeUser.hashSalt);
         //if (hashedPassword != maybeUser.hashedPassword) throw "Wrong Password!";
         if (hashedPassword != maybeUser.hashedPassword){
-          return res.status(200).json({ message: 'Wrong Password!' });
+          return res.status(500).json({ message: 'Wrong Password!' });
         }
         //if (maybeUser.passwordExpiry < new Date()) throw 'Password Expired!';
         if (maybeUser.passwordExpiry < new Date()){//401
-          return res.status(200).json({ message: 'Password Expired!' });
+          return res.status(500).json({ message: 'Password Expired!' });
         }
       }
   
