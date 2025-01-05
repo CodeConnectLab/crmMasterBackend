@@ -135,10 +135,12 @@ const topMetricss = async (start, end, user) => {
     // Follow Up Leads
     LeadModel.countDocuments({
       ...baseQuery,
+      leadUpdated:true,
       leadStatus: { $in: followupStatusIds }
     }),
     LeadModel.countDocuments({
       ...previousQuery,
+      leadUpdated:true,
       leadStatus: { $in: followupStatusIds }
     }),
 
