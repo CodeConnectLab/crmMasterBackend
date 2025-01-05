@@ -32,11 +32,11 @@ exports.logIn = async (res,{
 
         
         if (!maybeUser){
-          return res.status(401).json({ message: 'Invalid credentials' });
+          return res.status(200).json({ message: 'Invalid credentials' });
         }
         // Check if user is verified
         if (!maybeUser.isActive) {
-          return res.status(401).json({ message: 'User is not Active' });
+          return res.status(200).json({ message: 'User is not Active' });
         }
 
       // if (!maybeUser) throw "User doesn't exist";
