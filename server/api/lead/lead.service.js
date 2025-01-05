@@ -36,6 +36,7 @@ exports.createLeadByCompany = async (data, user) => {
         }
         const lead = await Lead.create({
             ...data,
+            leadUpdated:true,
             companyId: user.companyId,
             createdBy: user._id,
         });
