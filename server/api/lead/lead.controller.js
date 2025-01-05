@@ -25,7 +25,7 @@ exports.getAllByCompany = (req, res) => {
       productService: req.query.productService,
       startDate: req.query.startDate,
       endDate: req.query.endDate,
-      sortBy: 'followUpDate',
+      sortBy: 'updatedAt',
       sortOrder: 'asc'
     };
   
@@ -182,6 +182,32 @@ exports.bulkUplodeLead = async (req, res) => {
     return responseHandler.error(res, error, error.message || 'Error processing upload', 500);
   }
 };
+
+
+
+
+exports.exportExcel = async (req, res) => {
+  try {
+      const result = await service.exportExcel(req.body, req.user);
+      // Send the file data in the response
+      return responseHandler.success(res, result, "Excel file generated successfully!", 200);
+  } catch (error) {
+      console.error('Export Excel Error:', error);
+      return responseHandler.error(res, error, error.message, 500);
+  }
+};
+
+exports.exportPdf=async (req,res)=>{
+  try {
+    const result = await service.exportPDF(req.body, req.user);
+    return responseHandler.success(res, result, "PDF file generated successfully!", 200);
+} catch (error) {
+    console.error('Export PDF Error:', error);
+    return responseHandler.error(res, error, error.message, 500);
+}
+}
+
+
 
 
   exports.get=(req,res)=>{

@@ -187,6 +187,78 @@ exports.updateMe= async ({name,bio},user)=>{
     select: '-hashedPassword -hashSalt -otp -otpExpiry -resetPasswordToken'});
 }
 
+exports.updateDepartment = async (contentId, { name, bio, isActive, assignedTL, password, email, phone }, user) => {
+  try {
+      // First check if user exists
+      const existingUser = await UserModel.findById(contentId);
+      if (!existingUser) {
+          throw new Error('User not found');
+      }
+
+      // Check email uniqueness only if email is being updated
+      if (email && email !== existingUser.email) {
+          const emailExists = await UserModel.findOne({ 
+              email,
+              _id: { $ne: contentId }  // Exclude current user from check
+          }).lean();
+          
+          if (emailExists) {
+              throw new Error('Email already exists for another user!');
+          }
+      }
+
+      // Check phone uniqueness only if phone is being updated
+      if (phone && phone !== existingUser.phone) {
+          const phoneExists = await UserModel.findOne({ 
+              phone,
+              _id: { $ne: contentId }  // Exclude current user from check
+          }).lean();
+          
+          if (phoneExists) {
+              throw new Error('Phone number already exists for another user!');
+          }
+      }
+
+      // Prepare update data
+      const updateData = {
+          ...(name && { name }),
+          ...(bio && { bio }),
+          ...(isActive !== undefined && { isActive }),
+          ...(assignedTL && { assignedTL }),
+          ...(email && { email }),
+          ...(phone && { phone })
+      };
+
+      // Handle password update if provided
+      if (password) {
+          const userSalt = generateSalt();
+          updateData.hashedPassword = getHashedPassword(password, userSalt);
+          updateData.hashSalt = userSalt;
+          updateData.passwordExpiry = new Date(new Date().setDate(new Date().getDate() + 10));
+      }
+
+      // Update user with validated fields using contentId
+      const updatedUser = await UserModel.findByIdAndUpdate(
+          contentId,  // Using contentId instead of user._id
+          { $set: updateData },
+          {
+              new: true,
+              select: '-hashedPassword -hashSalt -otp -otpExpiry -resetPasswordToken',
+              runValidators: true
+          }
+      );
+
+      if (!updatedUser) {
+          throw new Error('Error updating user');
+      }
+
+      return updatedUser;
+
+  } catch (error) {
+      throw error.message || 'Error updating user';
+  }
+};
+
 exports.updateProfileImg = async (data, user) => {
   try {    
 

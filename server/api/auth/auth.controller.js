@@ -1,7 +1,7 @@
 const service = require("./auth.service");
 const jwtHelper = require("../../helpers/jwt.helper");
 exports.logIn = (req, res, next) => {
-   return service.logIn(req.body, req.user)
+   return service.logIn(res,req.body, req.user)
         .then(result => responseHandler.success(res, result, "User signed in successfully!", 200))
         .catch(error => responseHandler.error(res, error, error.message, 500));
 }

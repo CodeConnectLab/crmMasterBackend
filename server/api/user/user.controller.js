@@ -40,6 +40,12 @@ exports.updateMe = (req, res, next) => {
         .catch(error => responseHandler.error(res, error, error.message, 500));
 }
 
+exports.updateDepartment= (req, res, next) => {
+  return service.updateDepartment(req.params.id, req.body, req.user)
+  .then(result => responseHandler.success(res, result, "User update successful!", 200))
+  .catch(error => responseHandler.error(res, error, error.message, 500));
+}
+
 exports.updateProfileImg = (req, res, next) => {
   return service.updateProfileImg(req.body, req.user)
       .then(result => responseHandler.success(res, result, "User Profile image upload successful!", 200))

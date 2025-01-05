@@ -50,15 +50,18 @@ exports.createSupportUser = {
 exports.updateMe={
   body:Joi.object({
     name: Joi.string().min(2).max(50).optional(),
-    // phone: Joi.string().pattern(/^[0-9]{10}$/).optional()
+    phone: Joi.string().pattern(/^[0-9]{10}$/).optional(),
+    email: Joi.string().email().optional(),
+    password: Joi.string().optional().min(8),
     //   .messages({
     //     'string.pattern.base': 'Phone number must be 10 digits'
     //   }),
     bio: Joi.string().max(500).optional(),
+    isActive:Joi.boolean().optional(),
    // profilePic: Joi.string().uri().optional(),
     // ipaddress: Joi.string().ip().optional(),
     // isPrime: Joi.boolean().optional(),
-    // assignedTL: Joi.string().hex().length(24).optional(), // MongoDB ObjectId validation
+    assignedTL: Joi.string().allow('', null).hex().length(24).optional(), // MongoDB ObjectId validation
   }).min(1)
 }
 

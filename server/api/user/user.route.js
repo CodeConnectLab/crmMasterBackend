@@ -52,6 +52,16 @@ router.put(
   controller.updateMe
 )
 
+///////// update Department list by admin
+router.put(
+  usersVersion + "/updateDepartment/:id",
+  joiValidate(validationInputs.updateMe, options),
+  auth.isAuthenticated({
+    adminOnly: true
+  }),
+  controller.updateDepartment
+)
+
 /////  user profile img uplode 
 router.put(
   usersVersion + "/users/profile-img-uplode",

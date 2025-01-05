@@ -8,7 +8,7 @@ const userModel = require("../user/user.model");
 const OTPVerification = require("./otpVerification");
 
 
-exports.logIn = async ({
+exports.logIn = async (res,{
     email,
     phone,
     password,
@@ -28,15 +28,31 @@ exports.logIn = async ({
           //select: 'code name status subscription'
         })
         .lean();
-  
-      if (!maybeUser) throw "User doesn't exist";
-      if (maybeUser?.deleted) throw "User is not Active";
+     
+
+        
+        if (!maybeUser){
+          return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        // Check if user is verified
+        if (!maybeUser.isActive) {
+          return res.status(401).json({ message: 'User is not Active' });
+        }
+
+      // if (!maybeUser) throw "User doesn't exist";
+      // if (maybeUser?.isActive) throw "User is not Active";
   
       // Password authentication
       if (password) {
         let hashedPassword = getHashedPassword(password, maybeUser.hashSalt);
-        if (hashedPassword != maybeUser.hashedPassword) throw "Wrong Password!";
-        if (maybeUser.passwordExpiry < new Date()) throw 'Password Expired!';
+        //if (hashedPassword != maybeUser.hashedPassword) throw "Wrong Password!";
+        if (hashedPassword != maybeUser.hashedPassword){
+          return res.status(401).json({ message: 'Wrong Password!' });
+        }
+        //if (maybeUser.passwordExpiry < new Date()) throw 'Password Expired!';
+        if (maybeUser.passwordExpiry < new Date()){
+          return res.status(401).json({ message: 'Password Expired!' });
+        }
       }
   
       // OTP authentication

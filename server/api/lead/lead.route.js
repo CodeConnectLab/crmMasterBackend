@@ -113,6 +113,31 @@ router.delete(
 );
 
 
+////////// downlode/export (excel)
+router.get(
+  usersVersion + '/export-excel',
+  auth.isAuthenticated({
+    // adminOnly: true
+  }),
+  //joiValidate(validationInputs.bulkDeleteLeads),
+  controller.exportExcel
+);
+
+
+////////// downlode/export (pdf)
+router.get(
+  usersVersion + '/export-pdf',
+  auth.isAuthenticated({
+    // adminOnly: true
+  }),
+  //joiValidate(validationInputs.bulkDeleteLeads),
+  controller.exportPdf
+);
+
+
+
+
+
 
 
 
