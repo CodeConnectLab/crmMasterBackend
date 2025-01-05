@@ -40,7 +40,10 @@ async function processFollowUpNotification(notification) {
       const diffInMinutes = followUpTime.diff(currentTime, 'minutes');
       //console.log('diffInMinutes',notification.time,diffInMinutes,followUpTime)
       // Check if it's time to send notification
-      if (diffInMinutes === notification.time || diffInMinutes<notification.time || diffInMinutes==0) {
+      // if (diffInMinutes === notification.time || diffInMinutes<notification.time || diffInMinutes==0) {
+      //   await sendNotificationsForLead(notification, lead);
+      // }
+      if (diffInMinutes === notification.time || diffInMinutes==0) {
         await sendNotificationsForLead(notification, lead);
       }
     }
