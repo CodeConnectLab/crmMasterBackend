@@ -2,7 +2,7 @@
 const service = require("./lead.service")
 
 exports.createLead=(req,res,next)=>{
-    return service.createLeadByCompany(req.body, req.user)
+    return service.createLeadByCompany(res,req.body, req.user)
     .then((result) => {
         if (result.message === 'Lead with this contact number already exists') {
            responseHandler.error(res, '', 'Lead with this contact number already exists', 200)

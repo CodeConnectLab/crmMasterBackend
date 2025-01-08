@@ -13,7 +13,7 @@ const PDFDocument = require('pdfkit');
 const GeoLocationModel = require('../geoLocation/geoLocation.model');
 const userRoles = require('../../config/constants/userRoles')
 ////////  lead Save 
-exports.createLeadByCompany = async (data, user) => {
+exports.createLeadByCompany = async (res,data, user) => {
     try {
         if (data.contactNumber) {
             const bloomFilterManager = LeadBloomFilterManager.getInstance();
@@ -27,9 +27,10 @@ exports.createLeadByCompany = async (data, user) => {
                     contactNumber: data.contactNumber,
                 });
                 if (existingLead) {
-                    return {
-                        message: "Lead with this contact number already exists",
-                    };
+                  return res.status(200).json({ message: 'Lead with this contact number already exists' });
+                    // return {
+                    //     message: "Lead with this contact number already exists",
+                    // };
 
                 }
             }
@@ -184,7 +185,7 @@ exports.getAllLeadsByCompany = async (params, user) => {
             productService,
             startDate,
             endDate,
-            sortBy = 'updatedAt',
+            sortBy = 'createdAt',
             sortOrder = 'asc'
         } = params;
 
