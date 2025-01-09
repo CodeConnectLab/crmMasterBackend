@@ -19,7 +19,7 @@ const callHistorySchema = new mongoose.Schema({
   },
   rawType: {
     type: Number,
-    required: true
+   // required: true
   },
   callerName: {
     type: String,
