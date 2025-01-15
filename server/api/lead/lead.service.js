@@ -27,7 +27,7 @@ exports.createLeadByCompany = async (res,data, user) => {
                     contactNumber: data.contactNumber,
                 });
                 if (existingLead) {
-                  return res.status(200).json({ message: 'Lead with this contact number already exists' });
+                  return res.status(500).json({ message: 'Lead with this contact number already exists' });
                     // return {
                     //     message: "Lead with this contact number already exists",
                     // };
@@ -100,7 +100,7 @@ exports.bulkLeadUpload = async (fileData, user, formData) => {
         const leadObj = {
           companyId: user.companyId,  // Remove optional chaining
           createdBy: user._id,        // Remove optional chaining
-          firstName: lead.firstName || '',
+          firstName: lead.fullName || '',
           lastName: lead.lastName || '',
           email: lead.email || '',
           contactNumber: lead.contactNumber || '',
@@ -188,13 +188,19 @@ exports.getAllLeadsByCompany = async (params, user) => {
             sortBy = 'createdAt',
             sortOrder = 'asc'
         } = params;
+        
+        // Ensure page and limit are valid numbers
+        const validPage = Math.max(1, parseInt(page));
+        const validLimit = Math.max(1, parseInt(limit));
 
         const data = await getAllLeadByCompanyWithPagination(
             user.role,
             user.companyId,
             user._id,
-            Number(page),
-            Number(limit),
+            validPage,
+            validLimit,
+            // Number(page),
+            // Number(limit),
             {
                 search,
                 leadStatus,
@@ -233,7 +239,9 @@ const getAllLeadByCompanyWithPagination = async (
     filters
 ) => {
     try {
-      const skip = (page - 1) * limit
+      // const skip = (page - 1) * limit
+      // Ensure skip calculation is correct
+      const skip = Math.max(0, (page - 1) * limit);
 
       // Base query with company and deleted condition
       let query = {
@@ -273,22 +281,21 @@ const getAllLeadByCompanyWithPagination = async (
       }
 
       // Add specific filters if provided
-      if (filters.leadStatus) {
-        console.log('filters.leadStatus', filters.leadStatus)
+      if (filters?.leadStatus) {
         query.leadStatus = new Types.ObjectId(filters.leadStatus)
       }
-      if (filters.assignedAgent) {
+      if (filters?.assignedAgent) {
         query.assignedAgent = new Types.ObjectId(filters.assignedAgent)
       }
-      if (filters.leadSource) {
+      if (filters?.leadSource) {
         query.leadSource = new Types.ObjectId(filters.leadSource)
       }
-      if (filters.productService) {
+      if (filters?.productService) {
         query.productService = new Types.ObjectId(filters.productService)
       }
 
       // Search functionality
-      if (filters.search) {
+      if (filters?.search) {
         query.$or = [
           { firstName: { $regex: filters.search, $options: 'i' } },
           { email: { $regex: filters.search, $options: 'i' } },
@@ -299,7 +306,7 @@ const getAllLeadByCompanyWithPagination = async (
 
       // Build sort object
       const sortObj = {}
-      sortObj[filters.sortBy] = filters.sortOrder === 'desc' ? -1 : 1
+      sortObj[filters?.sortBy] = filters?.sortOrder === 'desc' ? -1 : 1
 
       // Get total count for pagination
       const total = await Lead.countDocuments(query)

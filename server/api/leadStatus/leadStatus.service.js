@@ -45,7 +45,7 @@ await notificationModel.create({
     regularUser: true
   },
   titleTemplate: `${name}: {title}`,
-  bodyTemplate: `Your ${name.toLowerCase()} {title} is scheduled for {time}. Location: {location}`
+  bodyTemplate: `Your ${name.toLowerCase()} {title} is scheduled for {time}.`
 });
 return leadStatus;
   } catch (error) {
@@ -259,7 +259,7 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
             regularUser: true
           },
           titleTemplate: `${updatedStatus.name}: {title}`,
-          bodyTemplate: `Your ${updatedStatus.name.toLowerCase()} {title} is scheduled for {time}. Location: {location}`
+          bodyTemplate: `Your ${updatedStatus.name.toLowerCase()} {title} is scheduled for {time}.`
         }], { session });
       }
 
