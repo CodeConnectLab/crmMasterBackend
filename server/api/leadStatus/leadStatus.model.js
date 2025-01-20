@@ -38,6 +38,14 @@ const LeadStatusSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  showImported: {
+    type: Boolean,
+    default: true
+  },
+  showOutSourced	: {
+    type: Boolean,
+    default: true
+  },
   sendNotification: {
     type: Boolean,
     default: false

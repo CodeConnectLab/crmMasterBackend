@@ -599,134 +599,132 @@ exports.getAllImportedLeadsByCompany = async (params, user) => {
 };
 
 const getAllImportedLeadsByCompanyWithPagination = async (
-    role,
-    companyId,
-    userId,
-    page,
-    limit,
-    filters
+  role,
+  companyId,
+  userId,
+  page,
+  limit,
+  filters
 ) => {
-    try {
-      const skip = (page - 1) * limit
+  try {
+    const skip = (page - 1) * limit
 
-      // First, get all LeadStatus IDs where showFollowUp is true
-      // const followupStatusIds = await LeadStatus
-      //     .find({
-      //         companyId,
-      //         showFollowUp: true,
-      //         // deleted: false,
-      //         // isActive: true,
-      //     })
-      //     .select("_id");
-      // const statusIds = followupStatusIds.map((status) => status._id);
-      // Base query with company and deleted condition
-      let query = {
-        companyId: companyId,
-        // leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
-        leadAddType: 'Import'
-      }
-      // Add assignedAgent filter only for User role
-      if (role !== userRoles.SUPER_ADMIN) {
-        if (role === userRoles.USER) {
-          // For regular users - show only their own data
-          query.assignedAgent = userId
-        } else if (role === userRoles.TEAM_ADMIN) {
-          // For Team Leaders - show their data AND data of users assigned to them
-          query.$or = [
-            { assignedAgent: userId }, // TL's own data
-            {
-              assignedAgent: {
-                $in: await User.distinct('_id', { assignedTL: userId })
-              }
-            } // Data where agent is any user assigned to this TL
-          ]
-        }
-      }
+    // First, get all LeadStatus IDs where showFollowUp is true
+    const importedStatusIds = await LeadStatus.find({
+      companyId,
+      showImported: true
+      // deleted: false,
+      // isActive: true,
+    }).select('_id')
+    const statusIds = importedStatusIds.map((status) => status._id)
 
-      // Add date range filter if provided
-      if (filters.startDate && filters.endDate) {
-        const start = new Date(filters.startDate)
-        start.setUTCHours(0, 0, 0, 0)
-        const end = new Date(filters.endDate)
-        end.setUTCHours(23, 59, 59, 999)
-
-        query.followUpDate = {
-          $gte: start,
-          $lte: end
-        }
-      }
-
-      // Add specific filters if provided
-      if (filters.leadStatus) {
-        console.log('filters.leadStatus', filters.leadStatus)
-        query.leadStatus = new Types.ObjectId(filters.leadStatus)
-      }
-      if (filters.assignedAgent) {
-        query.assignedAgent = new Types.ObjectId(filters.assignedAgent)
-      }
-      if (filters.leadSource) {
-        query.leadSource = new Types.ObjectId(filters.leadSource)
-      }
-      if (filters.productService) {
-        query.productService = new Types.ObjectId(filters.productService)
-      }
-
-      // Search functionality
-      if (filters.search) {
+    let query = {
+      companyId: companyId,
+      leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
+      leadAddType: 'Import'
+    }
+    // Add assignedAgent filter only for User role
+    if (role !== userRoles.SUPER_ADMIN) {
+      if (role === userRoles.USER) {
+        // For regular users - show only their own data
+        query.assignedAgent = userId
+      } else if (role === userRoles.TEAM_ADMIN) {
+        // For Team Leaders - show their data AND data of users assigned to them
         query.$or = [
-          { firstName: { $regex: filters.search, $options: 'i' } },
-          { email: { $regex: filters.search, $options: 'i' } },
-          { contactNumber: { $regex: filters.search, $options: 'i' } },
-          { city: { $regex: filters.search, $options: 'i' } }
+          { assignedAgent: userId }, // TL's own data
+          {
+            assignedAgent: {
+              $in: await User.distinct('_id', { assignedTL: userId })
+            }
+          } // Data where agent is any user assigned to this TL
         ]
       }
-
-      // Build sort object
-      const sortObj = {}
-      sortObj[filters.sortBy] = filters.sortOrder === 'desc' ? -1 : 1
-
-      // Get total count for pagination
-      const total = await Lead.countDocuments(query)
-      // Get paginated leads
-      const leads = await Lead.find(query)
-        .skip(skip)
-        .limit(limit)
-        .sort(sortObj)
-        .populate([
-          {
-            path: 'leadSource',
-            select: '_id name',
-            model: 'LeadSource'
-          },
-          {
-            path: 'productService',
-            select: '_id name',
-            model: 'ProductService'
-          },
-          {
-            path: 'assignedAgent',
-            select: '_id name',
-            model: 'User'
-          },
-          {
-            path: 'leadStatus',
-            select: '_id name color',
-            model: 'LeadStatus'
-          }
-        ])
-        .lean()
-      return {
-        data: leads,
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
-      }
-    } catch (error) {
-        console.error('Error in getAllFollowupLeadByCompanyWithPagination:', error);
-        throw error;
     }
-};
+
+    // Add date range filter if provided
+    if (filters.startDate && filters.endDate) {
+      const start = new Date(filters.startDate)
+      start.setUTCHours(0, 0, 0, 0)
+      const end = new Date(filters.endDate)
+      end.setUTCHours(23, 59, 59, 999)
+
+      query.followUpDate = {
+        $gte: start,
+        $lte: end
+      }
+    }
+
+    // Add specific filters if provided
+    if (filters.leadStatus) {
+      console.log('filters.leadStatus', filters.leadStatus)
+      query.leadStatus = new Types.ObjectId(filters.leadStatus)
+    }
+    if (filters.assignedAgent) {
+      query.assignedAgent = new Types.ObjectId(filters.assignedAgent)
+    }
+    if (filters.leadSource) {
+      query.leadSource = new Types.ObjectId(filters.leadSource)
+    }
+    if (filters.productService) {
+      query.productService = new Types.ObjectId(filters.productService)
+    }
+
+    // Search functionality
+    if (filters.search) {
+      query.$or = [
+        { firstName: { $regex: filters.search, $options: 'i' } },
+        { email: { $regex: filters.search, $options: 'i' } },
+        { contactNumber: { $regex: filters.search, $options: 'i' } },
+        { city: { $regex: filters.search, $options: 'i' } }
+      ]
+    }
+
+    // Build sort object
+    const sortObj = {}
+    sortObj[filters.sortBy] = filters.sortOrder === 'desc' ? -1 : 1
+
+    // Get total count for pagination
+    const total = await Lead.countDocuments(query)
+    // Get paginated leads
+    const leads = await Lead.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort(sortObj)
+      .populate([
+        {
+          path: 'leadSource',
+          select: '_id name',
+          model: 'LeadSource'
+        },
+        {
+          path: 'productService',
+          select: '_id name',
+          model: 'ProductService'
+        },
+        {
+          path: 'assignedAgent',
+          select: '_id name',
+          model: 'User'
+        },
+        {
+          path: 'leadStatus',
+          select: '_id name color',
+          model: 'LeadStatus'
+        }
+      ])
+      .lean()
+    return {
+      data: leads,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    }
+  } catch (error) {
+    console.error('Error in getAllFollowupLeadByCompanyWithPagination:', error)
+    throw error
+  }
+}
 
 /////// get all outsouce lead 
 exports.getAllOutsourcedLeadsByCompany = async (params, user) => {
@@ -794,21 +792,21 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
 ) => {
     try {
         const skip = (page - 1) * limit;
-
+         
         // First, get all LeadStatus IDs where showFollowUp is true
-        // const followupStatusIds = await LeadStatus
-        //     .find({
-        //         companyId,
-        //         showFollowUp: true,
-        //         // deleted: false,
-        //         // isActive: true,
-        //     })
-        //     .select("_id");
-        // const statusIds = followupStatusIds.map((status) => status._id);
+        const OutSourcedStatusIds = await LeadStatus
+            .find({
+                companyId,
+                showOutSourced: true,
+                // deleted: false,
+                // isActive: true,
+            })
+            .select("_id");
+        const statusIds = OutSourcedStatusIds.map((status) => status._id);
         // Base query with company and deleted condition
         let query = {
             companyId: companyId,
-            //leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
+            leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
             leadAddType:'ThirdParty'
         };
         // Add assignedAgent filter only for User role

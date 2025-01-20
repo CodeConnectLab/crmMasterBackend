@@ -71,7 +71,7 @@ exports.getAllByCompany = async ({},user) => {
     }
   };
 
-exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendNotification, wonStatus, lossStatus, name, color }, user) => {
+exports.updateLeadStatus1 = async (contentId, { showFollowUp,showOutSourced,showImported,showDashboard,sendNotification, wonStatus, lossStatus, name, color }, user) => {
     try {
       // Check if product exists and belongs to the company
       const existingProduct = await leadStatusModel.findOne({
@@ -108,6 +108,8 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
       // Handle sendNotification explicitly since it can be false
       ...(typeof sendNotification !== 'undefined' && { sendNotification }),
       ...(typeof showFollowUp !== 'undefined' && { showFollowUp }),
+      ...(typeof showImported !== 'undefined' && { showImported }),
+      ...(typeof showOutSourced !== 'undefined' && { showOutSourced }),
       ...(typeof showDashboard !== 'undefined' && { showDashboard }),
       updatedBy: user._id
     };
@@ -148,7 +150,7 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
   };
 
 
-  exports.updateLeadStatus = async (contentId, { showFollowUp, showDashboard, sendNotification, wonStatus, lossStatus, name, color }, user) => {
+  exports.updateLeadStatus = async (contentId, { showFollowUp, showImported, showOutSourced, showDashboard, sendNotification, wonStatus, lossStatus, name, color }, user) => {
     try {
       // Start a transaction
       const session = await leadStatusModel.startSession();
@@ -218,6 +220,8 @@ exports.updateLeadStatus1 = async (contentId, { showFollowUp,showDashboard,sendN
           ...(typeof lossStatus !== 'undefined' && { lossStatus }),
           ...(typeof sendNotification !== 'undefined' && { sendNotification }),
           ...(typeof showFollowUp !== 'undefined' && { showFollowUp }),
+          ...(typeof showImported !== 'undefined' && { showImported }),
+          ...(typeof showOutSourced !== 'undefined' && { showOutSourced }),
           ...(typeof showDashboard !== 'undefined' && { showDashboard }),
           updatedBy: user._id
         };

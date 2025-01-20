@@ -15,7 +15,9 @@ exports.validateLeadStatus={
       wonStatus: Joi.boolean().optional(),
       lossStatus: Joi.boolean().optional(),
       showDashboard: Joi.boolean().optional(),
-      showFollowUp: Joi.boolean().optional()
+      showFollowUp: Joi.boolean().optional(),
+      showOutSourced: Joi.boolean().optional(),
+      showImported: Joi.boolean().optional()
     }),
 };
 
@@ -29,7 +31,9 @@ exports.validateUpdateLeadStatus={
     wonStatus: Joi.boolean().optional(),
     lossStatus: Joi.boolean().optional(),
     showDashboard: Joi.boolean().optional(),
-    showFollowUp: Joi.boolean().optional()
+    showFollowUp: Joi.boolean().optional(),
+    showOutSourced: Joi.boolean().optional(),
+    showImported: Joi.boolean().optional()
   }),
 };
 
