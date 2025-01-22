@@ -621,6 +621,7 @@ const getAllImportedLeadsByCompanyWithPagination = async (
     let query = {
       companyId: companyId,
       leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
+      leadUpdated:false,
       leadAddType: 'Import'
     }
     // Add assignedAgent filter only for User role
@@ -807,6 +808,7 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
         let query = {
             companyId: companyId,
             leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
+            leadUpdated:false,
             leadAddType:'ThirdParty'
         };
         // Add assignedAgent filter only for User role
