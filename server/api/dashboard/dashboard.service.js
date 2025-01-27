@@ -157,14 +157,15 @@ const topMetricss = async (start, end, user) => {
     }),
 
     // Imported Leads
-    LeadModel.countDocuments({ ...baseQuery, leadAddType: 'Import', leadStatus: { $in: importedStatusIds } }),
-    LeadModel.countDocuments({ ...previousQuery, leadAddType: 'Import', leadStatus: { $in: importedStatusIds } }),
+    LeadModel.countDocuments({ ...baseQuery, leadAddType: 'Import', leadUpdated:false, leadStatus: { $in: importedStatusIds } }),
+    LeadModel.countDocuments({ ...previousQuery, leadAddType: 'Import', leadUpdated:false, leadStatus: { $in: importedStatusIds } }),
 
     // Outsourced Leads
-    LeadModel.countDocuments({ ...baseQuery, leadAddType: 'ThirdParty',leadStatus: { $in: OutSourcedStatusIds } }),
+    LeadModel.countDocuments({ ...baseQuery, leadAddType: 'ThirdParty', leadUpdated:false, leadStatus: { $in: OutSourcedStatusIds } }),
     LeadModel.countDocuments({
       ...previousQuery,
       leadAddType: 'ThirdParty',
+      leadUpdated:false,
       leadStatus: { $in: OutSourcedStatusIds }
     })
   ])
