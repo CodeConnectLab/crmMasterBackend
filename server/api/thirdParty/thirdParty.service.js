@@ -135,8 +135,7 @@ exports.getCurlApi = async (leadSource, user) => {
 --header 'Content-Type: application/json' \
 --header 'X-API-Key: {{token}}' \
 --data-raw '{
-    "firstName": "Arun",
-    "lastName": "Kumar",
+    "firstName": "Arun Kumar",
     "email": "jane.smith@example.com",
     "contactNumber": "9667432436",
     "description":"this lead come from ",

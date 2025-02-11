@@ -794,7 +794,7 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
     try {
         const skip = (page - 1) * limit;
          
-        // First, get all LeadStatus IDs where showFollowUp is true
+        // First, get all LeadStatus IDs where showOutSourced is true
         const OutSourcedStatusIds = await LeadStatus
             .find({
                 companyId,
@@ -807,7 +807,11 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
         // Base query with company and deleted condition
         let query = {
             companyId: companyId,
-            leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
+           // leadStatus: { $in: statusIds }, // Only include leads with status that have showOutSourced true
+            $or: [
+              { leadStatus: { $in: statusIds } }, // Jis lead ka showOutSourced true ho
+              { leadStatus: { $exists: false } }  // Jis lead ka leadStatus field hi na ho
+          ],
             leadUpdated:false,
             leadAddType:'ThirdParty'
         };
