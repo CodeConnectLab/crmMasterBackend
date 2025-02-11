@@ -140,7 +140,7 @@ exports.getCurlApi = async (leadSource, user) => {
     "contactNumber": "9667432436",
     "description":"this lead come from ",
     "fullAddress":"Delhi ,India",
-    "city": "Bangalore"
+    "city": "Bangalore" 
 }'`
 
     return {
