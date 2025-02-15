@@ -488,7 +488,7 @@ exports.updateDeviceToken = async({fcmWebToken, fcmMobileToken}, user) => {
           fcmMobileToken
       };
 
-      return await UserModel.findOneAndUpdate(
+      const data= await UserModel.findOneAndUpdate(
           {
               _id: user?._id, // Find user by ID
               companyId: user?.companyId, // Ensure it's under the correct company
@@ -501,6 +501,7 @@ exports.updateDeviceToken = async({fcmWebToken, fcmMobileToken}, user) => {
               runValidators: true // Ensure validation rules are applied
           }
       );
+        return {message:'Device Token update successful!'} 
   } catch (error) {
       return Promise.reject(error); // Return rejected promise on error
   }
