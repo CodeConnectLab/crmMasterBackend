@@ -136,8 +136,13 @@ async function sendNotificationToUser_old_not_in_use(notification, lead, user) {
 
 async function sendNotificationToUser(notification, lead, user) {
   try {
-    const followUpTime = moment(lead.followUpDate).format('hh:mm A');
+    const userTimeZone = user?.timeZone || 'Asia/Kolkata'; // Default to 'Asia/Kolkata' if timezone is not provided
 
+const followUpTime = moment(lead.followUpDate)
+  .tz(userTimeZone) // Convert to user's timezone
+  .format('hh:mm A'); // Format time
+
+    // const followUpTime = moment(lead.followUpDate).format('hh:mm A');
     // Replace placeholders in templates
     const title = notification.titleTemplate.replace('{title}', lead.firstName || 'Lead');
     const body = notification.bodyTemplate
