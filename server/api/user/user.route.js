@@ -165,7 +165,7 @@ router.put(
 
 ///////////////  fcmMobileToken && fcmWebToken  update in model
 router.put(
-  usersVersion + "update-token",
+  usersVersion + "/update-token",
   auth.isAuthenticated({
     // adminOnly: true
   }),
