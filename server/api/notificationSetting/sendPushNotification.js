@@ -133,12 +133,12 @@ async function sendNotificationToUser_old_not_in_use(notification, lead, user) {
     console.error(`Error sending notification to user ${user._id}:`, error);
   }
 }
-
+const moment1=require('moment-timezone')
 async function sendNotificationToUser(notification, lead, user) {
   try {
     const userTimeZone = user?.timeZone || 'Asia/Kolkata'; // Default to 'Asia/Kolkata' if timezone is not provided
-
-const followUpTime = moment(lead.followUpDate)
+    
+const followUpTime = moment1(lead.followUpDate)
   .tz(userTimeZone) // Convert to user's timezone
   .format('hh:mm A'); // Format time
 
