@@ -163,4 +163,13 @@ router.put(
 //   controller.restoreUser
 // )
 
+///////////////  fcmMobileToken && fcmWebToken  update in model
+router.put(
+  usersVersion + "update-token",
+  auth.isAuthenticated({
+    // adminOnly: true
+  }),
+  controller.updateDeviceToken
+)
+ 
 module.exports = router;

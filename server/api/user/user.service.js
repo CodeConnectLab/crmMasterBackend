@@ -480,6 +480,33 @@ exports.listUsers = async ({ }, user) => {
 };
 
 
+/////////// update device token 
+exports.updateDeviceToken = async({fcmWebToken, fcmMobileToken}, user) => {
+  try {
+      const finalUpdateData = {
+          fcmWebToken,
+          fcmMobileToken
+      };
+
+      return await UserModel.findOneAndUpdate(
+          {
+              _id: user?._id, // Find user by ID
+              companyId: user?.companyId, // Ensure it's under the correct company
+          },
+          {
+              $set: finalUpdateData // Update the FCM tokens
+          },
+          {
+              new: true, // Return the updated document
+              runValidators: true // Ensure validation rules are applied
+          }
+      );
+  } catch (error) {
+      return Promise.reject(error); // Return rejected promise on error
+  }
+};
+
+
 // exports.deleteUser = async (userID, user) => {
 //   /// update code for permission
 //   const user2 = await UserModel.findOne({ _id: userID }).select('role')

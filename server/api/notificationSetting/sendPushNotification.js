@@ -60,8 +60,8 @@ async function sendNotificationsForLead(notification, lead) {
 
     // Send notifications to each user
     for (const user of users) {
-      if (!user.fcmMobileToken) continue;
-
+      // if (!user.fcmMobileToken) continue;
+      if (!user.fcmMobileToken && !user.fcmWebToken) continue;
       await sendNotificationToUser(notification, lead, user);
     }
   } catch (error) {
@@ -99,7 +99,7 @@ async function getRecipientUsers(notification, lead) {
   }
 }
 
-async function sendNotificationToUser(notification, lead, user) {
+async function sendNotificationToUser_old_not_in_use(notification, lead, user) {
   try {
     const followUpTime = moment(lead.followUpDate).format('hh:mm A');
     
@@ -129,6 +129,61 @@ async function sendNotificationToUser(notification, lead, user) {
     await Modelnotification.create({titleTemplate:title,bodyTemplate:body,userId:user?._id,companyId:notification.companyId});
 
     console.log(`Successfully sent notification to user ${user._id}:`, response);
+  } catch (error) {
+    console.error(`Error sending notification to user ${user._id}:`, error);
+  }
+}
+
+async function sendNotificationToUser(notification, lead, user) {
+  try {
+    const followUpTime = moment(lead.followUpDate).format('hh:mm A');
+
+    // Replace placeholders in templates
+    const title = notification.titleTemplate.replace('{title}', lead.firstName || 'Lead');
+    const body = notification.bodyTemplate
+      .replace('{title}', lead.firstName || 'Lead')
+      .replace('{time}', followUpTime);
+
+    const messagePayload = {
+      notification: { title, body },
+      data: {
+        leadId: lead._id.toString(),
+        statusId: notification.statusId.toString(),
+        companyId: notification.companyId.toString(),
+        type: 'LEAD_FOLLOWUP',
+      },
+    };
+
+    const sendPromises = [];
+
+    // Send notification to Mobile if token exists
+    if (user.fcmMobileToken) {
+      sendPromises.push(
+        admin.messaging().send({ ...messagePayload, token: user.fcmMobileToken })
+          .then(() => console.log(`Mobile notification sent to ${user._id}`))
+          .catch(error => console.error(`Mobile notification failed for ${user._id}:`, error))
+      );
+    }
+
+    // Send notification to Web if token exists
+    if (user.fcmWebToken) {
+      sendPromises.push(
+        admin.messaging().send({ ...messagePayload, token: user.fcmWebToken })
+          .then(() => console.log(`Web notification sent to ${user._id}`))
+          .catch(error => console.error(`Web notification failed for ${user._id}:`, error))
+      );
+    }
+
+    await Promise.all(sendPromises);
+
+    // Store notification in DB
+    await Modelnotification.create({
+      titleTemplate: title,
+      bodyTemplate: body,
+      userId: user?._id,
+      companyId: notification.companyId,
+    });
+
   } catch (error) {
     console.error(`Error sending notification to user ${user._id}:`, error);
   }
