@@ -61,7 +61,7 @@ async function sendNotificationsForLead(notification, lead) {
     // Send notifications to each user
     for (const user of users) {
       // if (!user.fcmMobileToken) continue;
-      if (!user.fcmMobileToken && !user.fcmWebToken) continue;
+      if (!user?.fcmMobileToken && !user?.fcmWebToken) continue;
       await sendNotificationToUser(notification, lead, user);
     }
   } catch (error) {
@@ -162,7 +162,7 @@ const followUpTime = moment1(lead.followUpDate)
     const sendPromises = [];
 
     // Send notification to Mobile if token exists
-    if (user.fcmMobileToken) {
+    if (user?.fcmMobileToken) {
       sendPromises.push(
         admin.messaging().send({ ...messagePayload, token: user.fcmMobileToken })
           .then(() => console.log(`Mobile notification sent to ${user._id}`))
@@ -171,7 +171,7 @@ const followUpTime = moment1(lead.followUpDate)
     }
 
     // Send notification to Web if token exists
-    if (user.fcmWebToken) {
+    if (user?.fcmWebToken) {
       sendPromises.push(
         admin.messaging().send({ ...messagePayload, token: user.fcmWebToken })
           .then(() => console.log(`Web notification sent to ${user._id}`))
