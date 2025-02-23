@@ -409,6 +409,38 @@ exports.updateCompanyDetails = async (updateData, user) => {
   }
 };
 
+
+
+
+/////////// update device token 
+exports.updateDeviceToken = async({fcmWebToken, fcmMobileToken}, user) => {
+  try {
+      const finalUpdateData = {
+          fcmWebToken,
+          fcmMobileToken
+      };
+
+      const data= await UserModel.findOneAndUpdate(
+          {
+              _id: user?._id, // Find user by ID
+              companyId: user?.companyId, // Ensure it's under the correct company
+          },
+          {
+              $set: finalUpdateData // Update the FCM tokens
+          },
+          {
+              new: true, // Return the updated document
+              runValidators: true // Ensure validation rules are applied
+          }
+      );
+        return {message:'Device Token update successful!'} 
+  } catch (error) {
+      return Promise.reject(error); // Return rejected promise on error
+  }
+};
+
+//////////  user list
+
 exports.listUsers = async ({ }, user) => {
   if (user.role == userRoles.SUPER_ADMIN) {
     return UserModel.find(
@@ -479,148 +511,82 @@ exports.listUsers = async ({ }, user) => {
 
 };
 
+const LeadModel = require('../lead/lead.model');
+const mongoose = require('mongoose');
 
-/////////// update device token 
-exports.updateDeviceToken = async({fcmWebToken, fcmMobileToken}, user) => {
-  try {
-      const finalUpdateData = {
-          fcmWebToken,
-          fcmMobileToken
-      };
+exports.deleteUser = async (req, { deleteUserId, LeadassigenUserId }, user) => {
+    let session;
+    try {
+        // Start transaction
+        session = await mongoose.startSession();
+        session.startTransaction();
 
-      const data= await UserModel.findOneAndUpdate(
-          {
-              _id: user?._id, // Find user by ID
-              companyId: user?.companyId, // Ensure it's under the correct company
-          },
-          {
-              $set: finalUpdateData // Update the FCM tokens
-          },
-          {
-              new: true, // Return the updated document
-              runValidators: true // Ensure validation rules are applied
-          }
-      );
-        return {message:'Device Token update successful!'} 
-  } catch (error) {
-      return Promise.reject(error); // Return rejected promise on error
-  }
+        // Find user to delete
+        const userToDelete = await UserModel.findById(deleteUserId);
+        if (!userToDelete) {
+            throw {
+                status: 404,
+                message: 'User not found'
+            };
+        }
+
+        if (LeadassigenUserId) {
+            // Validate if assignee user exists
+            const assigneeUser = await UserModel.findById(LeadassigenUserId);
+            if (!assigneeUser) {
+                throw {
+                    status: 404,
+                    message: 'Assignee user not found'
+                };
+            }
+
+            // Update all leads assigned to deleted user
+            await LeadModel.updateMany(
+                { assignedAgent: deleteUserId },
+                { assignedAgent: LeadassigenUserId },
+                { session }
+            );
+        }
+
+        // Delete the user
+        await UserModel.findByIdAndDelete(deleteUserId, { session });
+
+        // Commit the transaction
+        await session.commitTransaction();
+
+        return {
+            status: 200,
+            message: 'User deleted successfully'
+        };
+
+    } catch (error) {
+        // Rollback transaction on error
+        if (session) {
+            await session.abortTransaction();
+        }
+
+        // Handle specific errors
+        if (error.status) {
+            return {
+                status: error.status,
+                message: error.message
+            };
+        }
+
+        // Handle unexpected errors
+        console.error('Error in deleteUser:', error);
+        return {
+            status: 500,
+            message: 'Internal server error'
+        };
+
+    } finally {
+        // End session
+        if (session) {
+            await session.endSession();
+        }
+    }
 };
-
-
-// exports.deleteUser = async (userID, user) => {
-//   /// update code for permission
-//   const user2 = await UserModel.findOne({ _id: userID }).select('role')
-//   const role1 = user2 ? user2.role[0] : null
-//   if (user.role[0] !== USER_ROLES.SUPER_ADMIN) {
-//     if (role1 == USER_ROLES.SUPPORT_ADMIN) {
-//       await checkPermission(user.role[0], 'admin', 'delete')
-//     }
-//     if (role1 == USER_ROLES.SUPPORT) {
-//       await checkPermission(user.role[0], 'support', 'delete')
-//     }
-//     if (role1 == USER_ROLES.USER) {
-//       await checkPermission(user.role[0], 'users', 'delete')
-//     }
-//   }
-//   /// update code for permission
-//   return UserModel.updateOne(
-//     {
-//       _id: userID
-//     },
-//     {
-//       deleted: true,
-//       deletedBy: user._id,
-//       deletedAt: new Date()
-//     }
-//   )
-// }
-
-
-///  profile image upload  
-// exports.uplodeprofileimg = async ({ img }, user) => {
-//   if (!img || !img.path || !img.originalname) {
-//     throw new Error('Invalid image provided')
-//   }
-//   try {
-//     const Url = await getPresignedUrl(img, img.mimetype)
-//     if (!Url) {
-//       throw new Error('Error uploading image to S3')
-//     }
-//     const updatedUser = await userModel.findByIdAndUpdate(
-//       user._id,
-//       { profilePic: Url },
-//       { new: true }
-//     )
-//     fs.unlinkSync(img.path)
-//     if (!updatedUser) {
-//       throw new Error('Error updating user profile image')
-//     }
-
-//     return updatedUser
-//   } catch (error) {
-//     console.error('Error uploading image:', error)
-//     if (fs.existsSync(img.path)) {
-//       fs.unlinkSync(img.path)
-//     }
-//     throw new Error('Error uploading image to S3')
-//   }
-// }
-
-// exports.restoreUser = async (userID, user) => {
-//   const user2 = await UserModel.findOne({ _id: userID }).select('role')
-//   const role1 = user2 ? user2.role[0] : null
-//   if (user.role[0] !== USER_ROLES.SUPER_ADMIN) {
-//     if (role1 == USER_ROLES.SUPPORT_ADMIN) {
-//       await checkPermission(user.role[0], 'admin', 'delete')
-//     }
-//     if (role1 == USER_ROLES.SUPPORT) {
-//       await checkPermission(user.role[0], 'support', 'delete')
-//     }
-//     if (role1 == USER_ROLES.USER) {
-//       await checkPermission(user.role[0], 'users', 'delete')
-//     }
-//   }
-//   return UserModel.updateOne(
-//     {
-//       _id: userID
-//     },
-//     {
-//       deleted: false,
-//       deletedBy: user._id,
-//       deletedAt: new Date()
-//     }
-//   )
-// }
-
-// exports.adminSetPassword = async ({ userId, password }, user) => {
-//   try {
-//     /// update code for permission
-//     const user1 = await UserModel.findOne({ _id: userId }).select('role')
-//     const role = user1 ? user1.role[0] : null
-//     if (user.role[0] !== USER_ROLES.SUPER_ADMIN) {
-//       if (role == USER_ROLES.SUPPORT_ADMIN) {
-//         await checkPermission(user.role[0], 'admin', 'edit')
-//       }
-//       if (role == USER_ROLES.SUPPORT) {
-//         await checkPermission(user.role[0], 'support', 'edit')
-//       }
-//     }
-//     /// update code for permission
-//     let userObj = await UserModel.findOne({ _id: userId }).lean()
-//     return UserModel.updateOne(
-//       {
-//         _id: userId
-//       },
-//       {
-//         hashedPassword: getHashedPassword(password, userObj.hashSalt),
-//         passowrdExpiry: new Date(new Date().setDate(new Date().getDate() + 50))
-//       }
-//     )
-//   } catch (error) {
-//     return Promise.reject(error)
-//   }
-// }
 
 
 

@@ -99,6 +99,13 @@ router.get(usersVersion + "/users",
   }),
   controller.listUsers);
 
+router.delete(usersVersion + "/Delete-User", 
+  auth.isAuthenticated({
+    adminOnly: true 
+}),
+joiValidate(validationInputs.DeleteUser, options),
+controller.DeleteUser)
+
 // router.get(usersVersion + "/support",
 //   auth.isAuthenticated({
 //     adminOnly: true

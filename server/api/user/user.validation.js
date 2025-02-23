@@ -65,6 +65,13 @@ exports.updateMe={
   }).min(1)
 }
 
+exports.DeleteUser={
+  body: Joi.object({
+    deleteUserId: Joi.string().required(),
+    LeadassigenUserId: Joi.string().optional(),
+  })
+}
+
 // exports.userActivites = {
 //   body: {
 //     activites: Joi.array().items(
