@@ -66,9 +66,7 @@
     "start:debug": "nodemon --inspect server/app.js",
     "start": "nodemon --max-old-space-size=8192 server/app.js",
     "dist": "NODE_ENV=production nodemon server/app.js",
-    "test": "NODE_ENV=test nodemon server/app.js",
-    "worker": "nodemon server/queues/notificationWorker.js",
-    "worker:dist": "NODE_ENV=production node server/queues/notificationWorker.js"
+    "test": "NODE_ENV=test nodemon server/app.js"
   },
   "private": true
 }
