@@ -35,7 +35,7 @@ let scheduledTasks = new Map();
 async function processFollowUpNotification(notification) {
   try {
     const currentTime = moment();
-     console.log('Current time:',currentTime.toDate() );
+    //  console.log('Current time:',currentTime.toDate() );
     // console.log('Current time1:',moment(currentTime).add(1, 'days').toDate());
     // Find leads matching the notification's status and having followUpDate
     const leads = await LeadModel.find({
@@ -48,7 +48,7 @@ async function processFollowUpNotification(notification) {
      // assignedAgent: { $exists: true }  // Only leads with assigned agents
     }).populate('assignedAgent'); // Populate assigned agent details
 
-    console.log(`Found ${leads.length} leads for status ${notification.statusId}`);
+    // console.log(`Found ${leads.length} leads for status ${notification.statusId}`);
 
     for (const lead of leads) {
   //  console.log(`Processing lead ${lead._id} for notification ${notification._id}`);

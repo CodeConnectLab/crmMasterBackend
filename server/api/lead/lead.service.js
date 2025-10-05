@@ -11,7 +11,9 @@ const { Types } = require('mongoose');
 const XLSX = require('xlsx');
 const PDFDocument = require('pdfkit');
 const GeoLocationModel = require('../geoLocation/geoLocation.model');
-const userRoles = require('../../config/constants/userRoles')
+const userRoles = require('../../config/constants/userRoles');
+// const scheduleLeadNotification  = require('../../queues/notificationQueue').scheduleLeadNotification;
+const NotificationModel = require('../notificationSetting/notificationSetting.model');
 ////////  lead Save 
 exports.createLeadByCompany = async (res,data, user) => {
     try {
@@ -42,6 +44,18 @@ exports.createLeadByCompany = async (res,data, user) => {
             companyId: user.companyId,
             createdBy: user._id,
         });
+
+      //////////  call a async function for add notification in Queue
+      // const notification = await NotificationModel.findOne({
+      //   companyId: user.companyId,
+      //   statusId: data.leadStatus, isEnabled: true
+      // })
+      // if (notification && data.followUpDate && (new Date(data.followUpDate) > new Date())) {
+      //   await scheduleLeadNotification(lead, notification).catch((err) => {
+      //     console.error('Error scheduling lead notification:', err);
+      //   })
+      // }
+
         return lead;
     } catch (error) {
         return Promise.reject(error);

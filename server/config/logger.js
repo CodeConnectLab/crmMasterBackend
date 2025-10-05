@@ -1,6 +1,3 @@
-/* Set winston logger: it will print logs to a rotating file each day
-  if enviornment is development then it will print log on standard output
-   */
 
 module.exports = function (app, config) {
 

@@ -12,8 +12,8 @@ function requiredProcessEnv(name) {
 // All configurations will extend these options
 // ============================================
 let all = {
-	projectName: "YogaRise",
-	websiteName: "YogaRise",
+	projectName: "CRM",
+	websiteName: "CRM",
 
 	env: process.env.NODE_ENV,
 
@@ -42,7 +42,7 @@ let all = {
 		static: "api/static/",
 	},
 
-	exceptionEmailID: process.env.EXCEPTION_EMAIL,
+	exceptionEmailID: '',
 
 	// MongoDB connection options
 	mongo: {

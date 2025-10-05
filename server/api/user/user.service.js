@@ -7,11 +7,11 @@ const {
 } = require('../../utility/util')
 const verificationTokensService = require('../verificationTokens/verificationTokens.service')
 const { USER_ROLES } = require('../../config/constants')
-const activityService = require('../activity/activity.service')
+// const activityService = require('../activity/activity.service')
 const authService = require('../auth/auth.service')
 const userModel = require('./user.model')
 const companyModel =require('../company/company.model')
-const checkPermission = require('../../utility/permissionCheck')
+// const checkPermission = require('../../utility/permissionCheck')
 // const fs = require('fs')
 const fs = require('fs').promises;
 //

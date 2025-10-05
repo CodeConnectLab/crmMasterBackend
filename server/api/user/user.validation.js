@@ -1,7 +1,6 @@
 const Joi = require('joi'),
   { USER_ROLES } = require("../../config/constants");
 Joi.objectId = require('joi-objectid')(Joi);
-const activites = require("../activity/activity.json")
 
 
 
@@ -71,28 +70,3 @@ exports.DeleteUser={
     LeadassigenUserId: Joi.string().optional(),
   })
 }
-
-// exports.userActivites = {
-//   body: {
-//     activites: Joi.array().items(
-//       Joi.string().valid(
-//         ...Object.values(activites)
-//       )
-//     )
-//   }
-// }
-
-// exports.adminSetPassword = {
-//   body: {
-//     userId: Joi.string().required(),
-//     password: Joi.string().required()
-//   }
-// }
-
-// exports.updateMe = {
-//   body: {
-//     firstName: Joi.string(),
-//     lastName: Joi.string(),
-//     phone: Joi.string()
-//   }
-// }
