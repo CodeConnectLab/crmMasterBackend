@@ -1,0 +1,6 @@
+.env
+.turbo
+.DS_Store
+node_modules
+logs/*
+ecosystem.config.js

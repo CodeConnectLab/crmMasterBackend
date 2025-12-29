@@ -1,0 +1,16 @@
+(node:3519) DeprecationWarning: current URL string parser is deprecated, and will be removed in a future version. To use the new parser, pass option { useNewUrlParser: true } to MongoClient.connect.
+MongoDB connection error: MongoNetworkError: failed to connect to server [localhost:27017] on first connect [MongoNetworkError: connect ECONNREFUSED 127.0.0.1:27017]
+(node:3772) DeprecationWarning: current URL string parser is deprecated, and will be removed in a future version. To use the new parser, pass option { useNewUrlParser: true } to MongoClient.connect.
+(node:3772) DeprecationWarning: collection.ensureIndex is deprecated. Use createIndexes instead.
+(node:3860) DeprecationWarning: current URL string parser is deprecated, and will be removed in a future version. To use the new parser, pass option { useNewUrlParser: true } to MongoClient.connect.
+(node:3860) DeprecationWarning: collection.ensureIndex is deprecated. Use createIndexes instead.
+(node:3899) DeprecationWarning: current URL string parser is deprecated, and will be removed in a future version. To use the new parser, pass option { useNewUrlParser: true } to MongoClient.connect.
+(node:3899) DeprecationWarning: collection.ensureIndex is deprecated. Use createIndexes instead.
+(node:4829) DeprecationWarning: current URL string parser is deprecated, and will be removed in a future version. To use the new parser, pass option { useNewUrlParser: true } to MongoClient.connect.
+ ***** Server start listening 9000 port On production Environment *****
+MongoDB connection error: MongoNetworkError: failed to connect to server [localhost:27017] on first connect [MongoNetworkError: connect ECONNREFUSED 127.0.0.1:27017]
+(node:4930) DeprecationWarning: current URL string parser is deprecated, and will be removed in a future version. To use the new parser, pass option { useNewUrlParser: true } to MongoClient.connect.
+ ***** Server start listening 9000 port On production Environment *****
+(node:4930) DeprecationWarning: collection.ensureIndex is deprecated. Use createIndexes instead.
+(node:4930) DeprecationWarning: collection.find option [fields] is deprecated and will be removed in a later version.
+(node:4930) DeprecationWarning: collection.find option [fields] is deprecated and will be removed in a later version.
