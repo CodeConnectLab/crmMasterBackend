@@ -17,12 +17,10 @@ const mailer = require('../mailer');
 
 module.exports = function (app) {
   app.use(cors({
-    origin: [
-      'http://13.200.34.99/',
-      'http://localhost:3000',
-      'http://127.0.0.1:3000'
-    ]
-  }))
+    origin: '*',            // allow all origins
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: false      // must be false when using '*'
+  }));
   app.use('/api/static', express.static(path.join(__dirname, '../', 'uploads')))
   app.use('/api/temp', express.static(path.join(__dirname, '../', 'temp')))
   app.use(compression());
