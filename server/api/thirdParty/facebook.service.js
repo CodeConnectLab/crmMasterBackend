@@ -143,15 +143,15 @@ exports.processSimpleAccount = async (simpleAccountId, user) => {
 
     // Exchange token for long-lived token
     console.log('🔄 Exchanging token for long-lived token...');
-    const longLivedToken = await exchangeForLongLivedToken(
-      simpleAccount.userAccessToken,
-      simpleAccount.facebookAppId,
-      simpleAccount.facebookAppSecret
-    );
+    // const longLivedToken = await exchangeForLongLivedToken(
+    //   simpleAccount.userAccessToken,
+    //   simpleAccount.facebookAppId,
+    //   simpleAccount.facebookAppSecret
+    // );
 
     // Get user's pages
     console.log('📄 Fetching user pages...');
-    const pages = await getUserPages(longLivedToken);
+    const pages = await getUserPages(simpleAccount.userAccessToken);
 
     if (!pages || pages.length === 0) {
       throw new Error('No pages found for this account');
