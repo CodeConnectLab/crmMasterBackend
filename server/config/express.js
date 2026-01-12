@@ -21,7 +21,8 @@ module.exports = function (app) {
       'http://13.200.34.99/',
       'http://localhost:3000',
       'http://localhost:5173',
-      'http://127.0.0.1:3000'
+      'http://127.0.0.1:3000',
+      'https://crm.codeconnect.in/'
     ]
   }))
   app.use('/api/static', express.static(path.join(__dirname, '../', 'uploads')))
