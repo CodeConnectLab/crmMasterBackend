@@ -202,11 +202,14 @@ exports.processSimpleAccount = async (simpleAccountId, user) => {
 
     // Exchange token for long-lived token first
     console.log('🔄 Exchanging token for long-lived token...');
-    const longLivedToken = await exchangeForLongLivedToken(
-      simpleAccount.userAccessToken,
-      simpleAccount.facebookAppId,
-      simpleAccount.facebookAppSecret
-    );
+    // const longLivedToken = await exchangeForLongLivedToken(
+    //   simpleAccount.userAccessToken,
+    //   simpleAccount.facebookAppId,
+    //   simpleAccount.facebookAppSecret
+    // );
+
+    /////// i already uploaded the long-lived token in the simple account model
+    const longLivedToken = simpleAccount.userAccessToken;
 
     // Get user's pages using long-lived token
     console.log('📄 Fetching user pages...');
