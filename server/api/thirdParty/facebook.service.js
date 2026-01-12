@@ -31,6 +31,7 @@ async function exchangeForLongLivedToken(shortLivedToken, appId, appSecret) {
  */
 async function verifyTokenPermissions(accessToken) {
   try {
+    console.log('🔍 Checking token permissions...');
     const response = await axios.get(`${FACEBOOK_GRAPH_API}/me/permissions`, {
       params: {
         access_token: accessToken
@@ -43,6 +44,7 @@ async function verifyTokenPermissions(accessToken) {
       .map(p => p.permission);
 
     console.log('📋 Token has permissions:', permissionNames);
+    console.log('📋 All permission statuses:', permissions.map(p => `${p.permission}: ${p.status}`));
 
     const requiredPermissions = ['pages_read_engagement', 'pages_show_list', 'leads_retrieval', 'pages_manage_metadata'];
     const missingPermissions = requiredPermissions.filter(
@@ -53,14 +55,15 @@ async function verifyTokenPermissions(accessToken) {
       console.warn('⚠️ Missing permissions:', missingPermissions);
       console.warn('⚠️ Available permissions:', permissionNames);
       // Don't throw error - let the actual API call determine if it's a problem
-      return false;
+      return { hasAll: false, missing: missingPermissions, available: permissionNames };
     }
 
-    return true;
+    console.log('✅ All required permissions are granted');
+    return { hasAll: true, available: permissionNames };
   } catch (error) {
-    console.warn('Could not verify permissions:', error.response?.data || error.message);
+    console.warn('⚠️ Could not verify permissions:', error.response?.data || error.message);
     // Continue anyway - permissions might be checked at page level
-    return false;
+    return { hasAll: false, error: error.message };
   }
 }
 
@@ -69,52 +72,108 @@ async function verifyTokenPermissions(accessToken) {
  */
 async function getUserPages(userAccessToken) {
   try {
-    // Try to verify permissions (but don't fail if check fails)
+    // Debug: Check permissions first (but don't fail)
     try {
-      await verifyTokenPermissions(userAccessToken);
-      console.log('✅ Token permissions verified');
+      const permResult = await verifyTokenPermissions(userAccessToken);
+      console.log('📋 Permission check result:', permResult);
     } catch (permError) {
-      console.warn('⚠️ Permission check warning:', permError.message);
-      // Continue anyway - Facebook API will tell us if there's a real issue
+      console.warn('⚠️ Permission check warning (continuing anyway):', permError.message);
     }
 
-    // Try to get pages
-    const response = await axios.get(`${FACEBOOK_GRAPH_API}/me/accounts`, {
-      params: {
-        access_token: userAccessToken,
-        fields: 'id,name,access_token,leadgen_forms{id,name}'
+    // Try to get pages - this is the actual test
+    console.log('🔍 Making Facebook API call to /me/accounts...');
+    
+    // First, try to get basic page list without nested fields
+    let response;
+    try {
+      // Try with minimal fields first
+      response = await axios.get(`${FACEBOOK_GRAPH_API}/me/accounts`, {
+        params: {
+          access_token: userAccessToken,
+          fields: 'id,name,access_token'
+        }
+      });
+      console.log('✅ Facebook API response received (basic fields)');
+      
+      // Now get lead forms for each page separately
+      const pages = response.data.data || [];
+      console.log(`📄 Found ${pages.length} page(s), fetching lead forms...`);
+      
+      for (const page of pages) {
+        try {
+          // Get lead forms for this specific page
+          const formsResponse = await axios.get(`${FACEBOOK_GRAPH_API}/${page.id}/leadgen_forms`, {
+            params: {
+              access_token: page.access_token,
+              fields: 'id,name'
+            }
+          });
+          ///page.access_token,  ye token never expires hoga ya nhi kyoki isme user access token hai jo long lived token hai
+          ///yes it is long lived token
+          page.leadgen_forms = { data: formsResponse.data.data || [] };
+          console.log(`  ✅ Page ${page.name}: ${page.leadgen_forms.data.length} lead form(s)`);
+        } catch (formError) {
+          console.warn(`  ⚠️ Could not fetch lead forms for page ${page.name}:`, formError.response?.data?.error?.message || formError.message);
+          page.leadgen_forms = { data: [] };
+        }
       }
-    });
-
-    return response.data.data || [];
+      
+      return pages;
+    } catch (error) {
+      // If that fails, try alternative approach - get pages via business account
+      console.log('⚠️ Direct /me/accounts failed, trying alternative approach...');
+      
+      // Try to get user's business accounts first
+      try {
+        const businessResponse = await axios.get(`${FACEBOOK_GRAPH_API}/me/businesses`, {
+          params: {
+            access_token: userAccessToken,
+            fields: 'id,name'
+          }
+        });
+        
+        console.log(`📊 Found ${businessResponse.data.data?.length || 0} business account(s)`);
+        
+        // If we have businesses, try to get pages from them
+        if (businessResponse.data.data && businessResponse.data.data.length > 0) {
+          // For now, still try /me/accounts but with different error message
+          throw new Error('Please ensure you are an admin of at least one Facebook Page. The token has correct permissions but you may not have any pages assigned to your account.');
+        }
+      } catch (businessError) {
+        // Ignore business account errors, continue with original error
+      }
+      
+      throw error; // Re-throw original error
+    }
   } catch (error) {
-    console.error('Error fetching pages:', error.response?.data || error.message);
+    console.error('❌ Error fetching pages - Full error:', JSON.stringify(error.response?.data || error.message, null, 2));
     
     // Provide more helpful error messages
     if (error.response?.data?.error) {
       const fbError = error.response.data.error;
+      console.error('📛 Facebook API Error Details:', {
+        code: fbError.code,
+        message: fbError.message,
+        type: fbError.type,
+        error_subcode: fbError.error_subcode
+      });
+      
       if (fbError.code === 10) {
-        // Check if it's a specific page permission issue
-        const errorMessage = fbError.message || '';
-        if (errorMessage.includes('page')) {
-          throw new Error(
-            'Insufficient permissions on one or more pages. ' +
-            'Please ensure you are an admin of the pages you want to connect, ' +
-            'and that you granted pages_read_engagement, leads_retrieval, and pages_manage_metadata permissions.'
-          );
-        } else {
-          throw new Error(
-            'Insufficient permissions. Please ensure you granted the following permissions when connecting: ' +
-            'pages_read_engagement, leads_retrieval, pages_manage_metadata. ' +
-            'You may need to reconnect your Facebook account with all permissions.'
-          );
-        }
+        // Error 10: Insufficient privileges on the page
+        // This means user is not an admin of any pages, even though token has permissions
+        throw new Error(
+          `You don't have admin access to any Facebook Pages. ` +
+          `Error: ${fbError.message || 'Insufficient privileges on the page'}. ` +
+          `Solution: Please ensure you are an ADMIN of at least one Facebook Page. ` +
+          `Go to your Facebook Page → Settings → Page Roles → and verify you are listed as Admin. ` +
+          `Then reconnect your Facebook account.`
+        );
       } else if (fbError.code === 190) {
         throw new Error('Access token is invalid or expired. Please reconnect your Facebook account.');
       } else if (fbError.code === 200) {
         throw new Error('Permission denied. Please ensure you have admin access to the pages.');
       } else {
-        throw new Error(`Facebook API Error (${fbError.code}): ${fbError.message}`);
+        throw new Error(`Facebook API Error (Code ${fbError.code}): ${fbError.message || 'Unknown error'}`);
       }
     }
     
@@ -550,6 +609,55 @@ exports.deleteFacebookAccount = async (accountId) => {
     return { message: 'Facebook account deleted successfully' };
   } catch (error) {
     console.error('Error deleting Facebook account:', error);
+    throw error;
+  }
+};
+
+/**
+ * Test Facebook token and permissions (for debugging)
+ */
+exports.testFacebookToken = async (simpleAccountId) => {
+  try {
+    const simpleAccount = await FacebookSimpleAccount.findById(simpleAccountId);
+    
+    if (!simpleAccount) {
+      throw new Error('Simple account not found');
+    }
+
+    const token = simpleAccount.userAccessToken;
+    const results = {
+      tokenPreview: token.substring(0, 20) + '...',
+      permissions: null,
+      pages: null,
+      errors: []
+    };
+
+    // Test 1: Check permissions
+    try {
+      const permResult = await verifyTokenPermissions(token);
+      results.permissions = permResult;
+    } catch (error) {
+      results.errors.push(`Permission check failed: ${error.message}`);
+    }
+
+    // Test 2: Try to get pages
+    try {
+      const pages = await getUserPages(token);
+      results.pages = {
+        count: pages.length,
+        pageIds: pages.map(p => p.id),
+        pageNames: pages.map(p => p.name)
+      };
+    } catch (error) {
+      results.errors.push(`Get pages failed: ${error.message}`);
+      if (error.response?.data?.error) {
+        results.facebookError = error.response.data.error;
+      }
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Error testing token:', error);
     throw error;
   }
 };

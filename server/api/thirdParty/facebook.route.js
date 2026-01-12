@@ -77,6 +77,16 @@ router.delete(
 );
 
 /**
+ * Test Facebook token (for debugging)
+ * GET /api/v1/facebook/test-token/:id
+ */
+router.get(
+  usersVersion + '/facebook/test-token/:id',
+  auth.isAuthenticated({}),
+  controller.testFacebookToken
+);
+
+/**
  * Webhook verification (GET) - Facebook will call this to verify webhook
  * GET /api/v1/facebook/webhook
  */

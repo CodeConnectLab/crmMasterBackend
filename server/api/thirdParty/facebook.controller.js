@@ -93,3 +93,12 @@ exports.deleteFacebookAccount = (req, res, next) => {
     .then(result => responseHandler.success(res, result, "Facebook account deleted successfully!", 200))
     .catch(error => responseHandler.error(res, error, error.message, 500));
 };
+
+/**
+ * Test Facebook token (for debugging)
+ */
+exports.testFacebookToken = (req, res, next) => {
+  return service.testFacebookToken(req.params.id)
+    .then(result => responseHandler.success(res, result, "Token test completed!", 200))
+    .catch(error => responseHandler.error(res, error, error.message, 500));
+};
