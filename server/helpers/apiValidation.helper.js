@@ -39,7 +39,9 @@ exports.joiValidate = function (schema, options = {}) {
       }
   
       if (schema.params) {
-        const result = Joi.object(schema.params).validate(req.params, validationOptions);
+        // Check if schema.params is already a Joi schema or a plain object
+        const paramsSchema = schema.params.isJoi ? schema.params : Joi.object(schema.params);
+        const result = paramsSchema.validate(req.params, validationOptions);
         
         if (result.error) {
           return res.status(400).json({
