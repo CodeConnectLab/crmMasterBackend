@@ -29,9 +29,6 @@ exports.processSimpleAccount = {
  * Validation for updating Facebook account
  */
 exports.updateFacebookAccount = {
-  params: Joi.object().keys({
-    id: Joi.objectId().required()
-  }),
   body: Joi.object().keys({
     leadSourceId: Joi.objectId().optional(),
     isActive: Joi.boolean().optional(),

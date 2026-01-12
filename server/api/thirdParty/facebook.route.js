@@ -31,7 +31,7 @@ router.post(
   auth.isAuthenticated({
     // adminOnly: true // Uncomment if only admins should process accounts
   }),
-  joiValidate(validationInputs.processSimpleAccount, options),
+//   joiValidate(validationInputs.processSimpleAccount, options),
   controller.processSimpleAccount
 );
 
