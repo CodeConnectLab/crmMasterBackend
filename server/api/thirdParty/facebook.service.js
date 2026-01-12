@@ -27,10 +27,52 @@ async function exchangeForLongLivedToken(shortLivedToken, appId, appSecret) {
 }
 
 /**
+ * Verify token permissions
+ */
+async function verifyTokenPermissions(accessToken) {
+  try {
+    const response = await axios.get(`${FACEBOOK_GRAPH_API}/me/permissions`, {
+      params: {
+        access_token: accessToken
+      }
+    });
+
+    const permissions = response.data.data || [];
+    const permissionNames = permissions
+      .filter(p => p.status === 'granted')
+      .map(p => p.permission);
+
+    const requiredPermissions = ['pages_read_engagement', 'leads_retrieval', 'pages_manage_metadata'];
+    const missingPermissions = requiredPermissions.filter(
+      perm => !permissionNames.includes(perm)
+    );
+
+    if (missingPermissions.length > 0) {
+      throw new Error(
+        `Missing required permissions: ${missingPermissions.join(', ')}. ` +
+        `Please reconnect Facebook with all required permissions.`
+      );
+    }
+
+    return true;
+  } catch (error) {
+    if (error.message.includes('Missing required permissions')) {
+      throw error;
+    }
+    console.warn('Could not verify permissions:', error.response?.data || error.message);
+    // Continue anyway - permissions might be checked at page level
+    return true;
+  }
+}
+
+/**
  * Get user's pages with access tokens
  */
 async function getUserPages(userAccessToken) {
   try {
+    // First verify token has required permissions
+    await verifyTokenPermissions(userAccessToken);
+
     const response = await axios.get(`${FACEBOOK_GRAPH_API}/me/accounts`, {
       params: {
         access_token: userAccessToken,
@@ -41,7 +83,24 @@ async function getUserPages(userAccessToken) {
     return response.data.data || [];
   } catch (error) {
     console.error('Error fetching pages:', error.response?.data || error.message);
-    throw new Error(`Failed to fetch pages: ${error.response?.data?.error?.message || error.message}`);
+    
+    // Provide more helpful error messages
+    if (error.response?.data?.error) {
+      const fbError = error.response.data.error;
+      if (fbError.code === 10) {
+        throw new Error(
+          'Insufficient permissions. Please ensure you granted the following permissions when connecting: ' +
+          'pages_read_engagement, leads_retrieval, pages_manage_metadata. ' +
+          'You may need to reconnect your Facebook account with all permissions.'
+        );
+      } else if (fbError.code === 190) {
+        throw new Error('Access token is invalid or expired. Please reconnect your Facebook account.');
+      } else {
+        throw new Error(`Facebook API Error (${fbError.code}): ${fbError.message}`);
+      }
+    }
+    
+    throw new Error(`Failed to fetch pages: ${error.message}`);
   }
 }
 
@@ -141,17 +200,17 @@ exports.processSimpleAccount = async (simpleAccountId, user) => {
       throw new Error('Account already processed');
     }
 
-    // Exchange token for long-lived token
+    // Exchange token for long-lived token first
     console.log('🔄 Exchanging token for long-lived token...');
-    // const longLivedToken = await exchangeForLongLivedToken(
-    //   simpleAccount.userAccessToken,
-    //   simpleAccount.facebookAppId,
-    //   simpleAccount.facebookAppSecret
-    // );
+    const longLivedToken = await exchangeForLongLivedToken(
+      simpleAccount.userAccessToken,
+      simpleAccount.facebookAppId,
+      simpleAccount.facebookAppSecret
+    );
 
-    // Get user's pages
+    // Get user's pages using long-lived token
     console.log('📄 Fetching user pages...');
-    const pages = await getUserPages(simpleAccount.userAccessToken);
+    const pages = await getUserPages(longLivedToken);
 
     if (!pages || pages.length === 0) {
       throw new Error('No pages found for this account');
