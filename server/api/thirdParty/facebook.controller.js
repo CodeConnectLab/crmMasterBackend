@@ -62,7 +62,7 @@ exports.receiveWebhook = (req, res, next) => {
  * Get all Facebook accounts
  */
 exports.getFacebookAccounts = (req, res, next) => {
-  return service.getFacebookAccounts(req.query.companyId, req.user)
+  return service.getFacebookAccounts(req, req.user)
     .then(result => responseHandler.success(res, result, "Facebook accounts retrieved successfully!", 200))
     .catch(error => responseHandler.error(res, error, error.message, 500));
 };

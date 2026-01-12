@@ -383,10 +383,10 @@ exports.processWebhookLead = async (webhookData) => {
 /**
  * Get all Facebook accounts for a company
  */
-exports.getFacebookAccounts = async (companyId, user) => {
+exports.getFacebookAccounts = async (req, user) => {
   try {
     const accounts = await FacebookAccount.find({
-      companyId: companyId || user?.companyId
+      companyId: user?.companyId
     }).populate('leadSourceId', 'name')
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 });
