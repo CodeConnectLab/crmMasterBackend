@@ -36,6 +36,16 @@ router.post(
 );
 
 /**
+ * Get all simple accounts (pending processing)
+ * GET /api/v1/facebook/simple-accounts
+ */
+router.get(
+  usersVersion + '/facebook/simple-accounts',
+  auth.isAuthenticated({}),
+  controller.getSimpleAccounts
+);
+
+/**
  * Get all Facebook accounts
  * GET /api/v1/facebook/accounts
  */

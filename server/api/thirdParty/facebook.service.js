@@ -381,12 +381,30 @@ exports.processWebhookLead = async (webhookData) => {
 };
 
 /**
+ * Get all simple accounts (not processed yet)
+ */
+exports.getSimpleAccounts = async (req, user) => {
+  try {
+    const accounts = await FacebookSimpleAccount.find({
+      companyId: user?.companyId,
+      processed: false
+    }).populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    return accounts;
+  } catch (error) {
+    console.error('Error fetching simple accounts:', error);
+    throw error;
+  }
+};
+
+/**
  * Get all Facebook accounts for a company
  */
-exports.getFacebookAccounts = async (req, user) => {
+exports.getFacebookAccounts = async (companyId, user) => {
   try {
     const accounts = await FacebookAccount.find({
-      companyId: user?.companyId
+      companyId: companyId || user?.companyId
     }).populate('leadSourceId', 'name')
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 });

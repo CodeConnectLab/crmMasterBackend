@@ -29,11 +29,15 @@ This guide explains how to implement the Facebook Lead Generation integration in
    ↓
 5. Create Simple Account (POST /api/v1/facebook/simple-account)
    ↓
-6. Process Account (POST /api/v1/facebook/process-account/:id)
+6. Simple Account appears in list with "Connect All Campaigns/Pages" button
    ↓
-7. Display success/error message
+7. User clicks "Connect All Campaigns/Pages" button
    ↓
-8. Show connected accounts list
+8. Process Account (POST /api/v1/facebook/process-account/:id)
+   ↓
+9. Display success/error message
+   ↓
+10. Show connected Facebook accounts list (full accounts with pages)
 ```
 
 ## Step-by-Step Implementation
@@ -96,7 +100,7 @@ const handleCallback = () => {
 ### Step 2: Create Simple Account API Call
 
 ```javascript
-const API_BASE_URL = 'https://yourdomain.com/api/v1';
+const API_BASE_URL = 'https://api.codeconnect.in/api/v1';
 
 const createSimpleAccount = async (userAccessToken) => {
   try {
@@ -110,7 +114,7 @@ const createSimpleAccount = async (userAccessToken) => {
         accountName: 'My Facebook Account', // User can customize this
         facebookAppId: 'YOUR_FACEBOOK_APP_ID',
         facebookAppSecret: 'YOUR_FACEBOOK_APP_SECRET', // Store securely
-        webhookUrl: 'https://yourdomain.com/api/v1/facebook/webhook',
+        webhookUrl: 'https://api.codeconnect.in/api/v1/facebook/webhook',
         userAccessToken: userAccessToken, // From OAuth
         // companyId is optional, will use user's company if not provided
       }),
@@ -122,12 +126,8 @@ const createSimpleAccount = async (userAccessToken) => {
       throw new Error(data.message);
     }
 
-    // Store the simple account ID
-    const simpleAccountId = data.data._id;
-    
-    // Process the account
-    await processAccount(simpleAccountId);
-    
+    // Simple account created - it will appear in the list
+    // User needs to click "Connect All Campaigns/Pages" button to process it
     return data.data;
   } catch (error) {
     console.error('Error creating simple account:', error);
@@ -136,7 +136,32 @@ const createSimpleAccount = async (userAccessToken) => {
 };
 ```
 
-### Step 3: Process Account API Call
+### Step 3: Get Simple Accounts List
+
+```javascript
+const getSimpleAccounts = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/facebook/simple-accounts`, {
+      headers: {
+        'Authorization': `Bearer ${yourAuthToken}`,
+      },
+    });
+
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.message);
+    }
+
+    return data.data; // Array of simple accounts
+  } catch (error) {
+    console.error('Error fetching simple accounts:', error);
+    throw error;
+  }
+};
+```
+
+### Step 4: Process Account API Call (Connect All Campaigns/Pages)
 
 ```javascript
 const processAccount = async (simpleAccountId) => {
@@ -167,7 +192,7 @@ const processAccount = async (simpleAccountId) => {
 };
 ```
 
-### Step 4: Complete Integration Component
+### Step 5: Complete Integration Component
 
 Here's a complete React component example:
 
@@ -177,19 +202,22 @@ import FacebookLogin from 'react-facebook-login';
 
 const FacebookIntegration = () => {
   const [loading, setLoading] = useState(false);
+  const [processingId, setProcessingId] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const [accounts, setAccounts] = useState([]);
+  const [simpleAccounts, setSimpleAccounts] = useState([]);
+  const [facebookAccounts, setFacebookAccounts] = useState([]);
 
   const FACEBOOK_APP_ID = 'YOUR_FACEBOOK_APP_ID';
   const FACEBOOK_APP_SECRET = 'YOUR_FACEBOOK_APP_SECRET'; // Store in env
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://yourdomain.com/api/v1';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.codeconnect.in/api/v1';
 
   // Get auth token (adjust based on your auth implementation)
   const getAuthToken = () => {
     return localStorage.getItem('authToken');
   };
 
+  // Step 1: Handle Facebook OAuth Response and Create Simple Account
   const handleFacebookResponse = async (response) => {
     if (!response.accessToken) {
       setError('Failed to get Facebook access token');
@@ -201,7 +229,7 @@ const FacebookIntegration = () => {
     setSuccess(false);
 
     try {
-      // Step 1: Create simple account
+      // Create simple account
       const createResponse = await fetch(`${API_BASE_URL}/facebook/simple-account`, {
         method: 'POST',
         headers: {
@@ -212,7 +240,7 @@ const FacebookIntegration = () => {
           accountName: `Facebook Account - ${new Date().toLocaleDateString()}`,
           facebookAppId: FACEBOOK_APP_ID,
           facebookAppSecret: FACEBOOK_APP_SECRET,
-          webhookUrl: `${window.location.origin}/api/v1/facebook/webhook`,
+          webhookUrl: 'https://api.codeconnect.in/api/v1/facebook/webhook',
           userAccessToken: response.accessToken,
         }),
       });
@@ -223,32 +251,13 @@ const FacebookIntegration = () => {
         throw new Error(createData.message);
       }
 
-      // Step 2: Process account
-      const processResponse = await fetch(
-        `${API_BASE_URL}/facebook/process-account/${createData.data._id}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getAuthToken()}`,
-          },
-        }
-      );
-
-      const processData = await processResponse.json();
-
-      if (processData.error) {
-        throw new Error(processData.message);
-      }
-
       setSuccess(true);
       setError(null);
       
-      // Refresh accounts list
-      await fetchAccounts();
+      // Refresh simple accounts list
+      await fetchSimpleAccounts();
       
-      // Show success message
-      alert(`Successfully connected! Processed ${processData.data.accounts.length} account(s).`);
+      alert('Facebook account added! Now click "Connect All Campaigns/Pages" to process it.');
     } catch (err) {
       setError(err.message);
       setSuccess(false);
@@ -258,7 +267,71 @@ const FacebookIntegration = () => {
     }
   };
 
-  const fetchAccounts = async () => {
+  // Step 2: Fetch Simple Accounts (Not Processed Yet)
+  const fetchSimpleAccounts = async () => {
+    try {
+      // Note: You may need to create this endpoint or filter in your backend
+      // For now, assuming you'll filter by processed: false
+      const response = await fetch(`${API_BASE_URL}/facebook/simple-accounts`, {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!data.error) {
+        // Filter only unprocessed accounts
+        const unprocessed = data.data.filter(acc => !acc.processed);
+        setSimpleAccounts(unprocessed);
+      }
+    } catch (err) {
+      console.error('Error fetching simple accounts:', err);
+    }
+  };
+
+  // Step 3: Process Simple Account (Connect All Campaigns/Pages)
+  const handleProcessAccount = async (simpleAccountId) => {
+    if (!window.confirm('This will connect all your Facebook pages and campaigns. Continue?')) {
+      return;
+    }
+
+    setProcessingId(simpleAccountId);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/facebook/process-account/${simpleAccountId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getAuthToken()}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.message);
+      }
+
+      alert(`Successfully connected! Processed ${data.data.accounts.length} Facebook account(s).`);
+      
+      // Refresh both lists
+      await fetchSimpleAccounts();
+      await fetchFacebookAccounts();
+    } catch (err) {
+      setError(err.message);
+      alert(`Error: ${err.message}`);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // Step 4: Fetch Processed Facebook Accounts
+  const fetchFacebookAccounts = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/facebook/accounts`, {
         headers: {
@@ -269,15 +342,16 @@ const FacebookIntegration = () => {
       const data = await response.json();
       
       if (!data.error) {
-        setAccounts(data.data);
+        setFacebookAccounts(data.data);
       }
     } catch (err) {
-      console.error('Error fetching accounts:', err);
+      console.error('Error fetching Facebook accounts:', err);
     }
   };
 
   useEffect(() => {
-    fetchAccounts();
+    fetchSimpleAccounts();
+    fetchFacebookAccounts();
   }, []);
 
   const handleDisconnect = async (accountId) => {
@@ -302,7 +376,7 @@ const FacebookIntegration = () => {
         throw new Error(data.message);
       }
 
-      await fetchAccounts();
+      await fetchFacebookAccounts();
       alert('Account disconnected successfully');
     } catch (err) {
       alert(`Error: ${err.message}`);
@@ -321,10 +395,11 @@ const FacebookIntegration = () => {
 
       {success && (
         <div className="alert alert-success">
-          Facebook account connected successfully!
+          Facebook account added! Click "Connect All Campaigns/Pages" to process it.
         </div>
       )}
 
+      {/* Step 1: Connect Facebook Button */}
       <div className="connect-section">
         <FacebookLogin
           appId={FACEBOOK_APP_ID}
@@ -338,13 +413,55 @@ const FacebookIntegration = () => {
           cssClass="btn btn-primary"
         />
         
-        {loading && <p>Processing... Please wait.</p>}
+        {loading && <p>Adding account... Please wait.</p>}
       </div>
 
-      <div className="accounts-list">
+      {/* Step 2: Simple Accounts List (Not Processed) */}
+      <div className="simple-accounts-list">
+        <h3>Pending Accounts (Click to Connect All Campaigns/Pages)</h3>
+        {simpleAccounts.length === 0 ? (
+          <p>No pending accounts. Connect a Facebook account above.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Account Name</th>
+                <th>App ID</th>
+                <th>Created At</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {simpleAccounts.map((account) => (
+                <tr key={account._id}>
+                  <td>{account.accountName}</td>
+                  <td>{account.facebookAppId}</td>
+                  <td>{new Date(account.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <span className="badge warning">Pending</span>
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => handleProcessAccount(account._id)}
+                      disabled={processingId === account._id}
+                      className="btn btn-success btn-sm"
+                    >
+                      {processingId === account._id ? 'Processing...' : 'Connect All Campaigns/Pages'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Step 3: Connected Facebook Accounts List (Processed) */}
+      <div className="facebook-accounts-list">
         <h3>Connected Accounts</h3>
-        {accounts.length === 0 ? (
-          <p>No Facebook accounts connected yet.</p>
+        {facebookAccounts.length === 0 ? (
+          <p>No Facebook accounts connected yet. Process a pending account above.</p>
         ) : (
           <table>
             <thead>
@@ -353,14 +470,15 @@ const FacebookIntegration = () => {
                 <th>Page Name</th>
                 <th>Status</th>
                 <th>Leads Received</th>
+                <th>Last Lead</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {accounts.map((account) => (
+              {facebookAccounts.map((account) => (
                 <tr key={account._id}>
                   <td>{account.accountName}</td>
-                  <td>{account.pageName}</td>
+                  <td>{account.pageName || 'N/A'}</td>
                   <td>
                     <span className={`badge ${account.isActive ? 'active' : 'inactive'}`}>
                       {account.isActive ? 'Active' : 'Inactive'}
@@ -370,6 +488,11 @@ const FacebookIntegration = () => {
                     )}
                   </td>
                   <td>{account.totalLeadsReceived || 0}</td>
+                  <td>
+                    {account.lastWebhookReceived 
+                      ? new Date(account.lastWebhookReceived).toLocaleDateString()
+                      : 'Never'}
+                  </td>
                   <td>
                     <button
                       onClick={() => handleDisconnect(account._id)}
@@ -423,13 +546,19 @@ POST /facebook/process-account/:id
 Authorization: Bearer {token}
 ```
 
-#### 3. Get Accounts
+#### 3. Get Simple Accounts (Pending Processing)
+```http
+GET /facebook/simple-accounts?companyId={id}
+Authorization: Bearer {token}
+```
+
+#### 4. Get Facebook Accounts (Processed)
 ```http
 GET /facebook/accounts?companyId={id}
 Authorization: Bearer {token}
 ```
 
-#### 4. Update Account
+#### 5. Update Account
 ```http
 PUT /facebook/accounts/:id
 Authorization: Bearer {token}
@@ -443,7 +572,7 @@ Content-Type: application/json
 }
 ```
 
-#### 5. Delete Account
+#### 6. Delete Account
 ```http
 DELETE /facebook/accounts/:id
 Authorization: Bearer {token}

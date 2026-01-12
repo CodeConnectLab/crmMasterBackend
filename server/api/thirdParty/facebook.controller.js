@@ -59,10 +59,19 @@ exports.receiveWebhook = (req, res, next) => {
 };
 
 /**
+ * Get all simple accounts (pending processing)
+ */
+exports.getSimpleAccounts = (req, res, next) => {
+  return service.getSimpleAccounts(req, req.user)
+    .then(result => responseHandler.success(res, result, "Simple accounts retrieved successfully!", 200))
+    .catch(error => responseHandler.error(res, error, error.message, 500));
+};
+
+/**
  * Get all Facebook accounts
  */
 exports.getFacebookAccounts = (req, res, next) => {
-  return service.getFacebookAccounts(req, req.user)
+  return service.getFacebookAccounts(req.query.companyId, req.user)
     .then(result => responseHandler.success(res, result, "Facebook accounts retrieved successfully!", 200))
     .catch(error => responseHandler.error(res, error, error.message, 500));
 };
