@@ -18,6 +18,7 @@ module.exports = function (app) {
   app.use("/api", require("./api/lead/lead.route"));
   app.use("/api", require("./api/dashboard/dashboard.route"));
   app.use("/api", require("./api/thirdParty/thirdParty.route"));
+  app.use("/api", require("./api/thirdParty/facebook.route"));
   app.use("/api", require("./api/geoLocation/geoLocation.route"));
   app.use("/api", require("./api/notificationSetting/notificationSetting.route"));
   app.use("/api", require("./api/permission/permission.route"))

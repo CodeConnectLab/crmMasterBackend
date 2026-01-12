@@ -23,6 +23,33 @@ const leadSchema = new mongoose.Schema({
     type: String,
     required: false
   },
+  // Facebook lead integration fields
+  fbLeadGenId: {
+    type: String,
+    required: false,
+    index: true
+  },
+  fbLeadGenFormId: {
+    type: String,
+    required: false
+  },
+  fbLeadGenAdId: {
+    type: String,
+    required: false
+  },
+  fbCompainName: {
+    type: String,
+    required: false
+  },
+  campaignName: {
+    type: String,
+    required: false
+  },
+  adName: {
+    type: String,
+    required: false
+  },
+  // Facebook lead integration fields
   contactNumber: {
     type: String,
     required: false

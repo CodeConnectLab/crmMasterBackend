@@ -16,7 +16,14 @@ const winston = require('winston');
 const mailer = require('../mailer');
 
 module.exports = function (app) {
-  app.use(cors())
+  app.use(cors({
+    origin: [
+      'http://13.200.34.99/',
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000'
+    ]
+  }))
   app.use('/api/static', express.static(path.join(__dirname, '../', 'uploads')))
   app.use('/api/temp', express.static(path.join(__dirname, '../', 'temp')))
   app.use(compression());
