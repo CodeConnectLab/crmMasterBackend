@@ -8,7 +8,7 @@ require('dotenv').config({
 	path: __dirname + '/config/.env'
 });
 /////////// this for notification
-const { initializeNotificationScheduler, refreshSchedules } = require('../server/api/notificationSetting/sendPushNotification');
+const { initializeNotificationScheduler, refreshSchedules } = require('./api/notificationSetting/sendPushNotification');
 // Initialize when app starts
  initializeNotificationScheduler();
 process.env.NODE_ENV = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
