@@ -4,3 +4,9 @@
 node_modules
 logs/*
 ecosystem.config.js
+
+# Secret files
+server/api/notificationSetting/serviceAccountKey.json
+**/serviceAccountKey.json
+*.json.key
+*.key.json
