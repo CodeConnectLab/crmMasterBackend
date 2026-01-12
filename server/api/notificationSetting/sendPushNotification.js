@@ -7,11 +7,14 @@ const cron = require('node-cron');
 const Modelnotification=require('./notification.model')
 
 
+// Initialize Firebase Admin only if all required environment variables are present
+let firebaseInitialized = false;
+
 const serviceAccount = {
   type: process.env.GOOGLE_TYPE,
   project_id: process.env.GOOGLE_PROJECT_ID,
   private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
-  private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Fix newlines
+  private_key: process.env.GOOGLE_PRIVATE_KEY ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined, // Fix newlines
   client_email: process.env.GOOGLE_CLIENT_EMAIL,
   client_id: process.env.GOOGLE_CLIENT_ID,
   auth_uri: process.env.GOOGLE_AUTH_URI,
@@ -21,11 +24,26 @@ const serviceAccount = {
   universe_domain: process.env.GOOGLE_UNIVERSE_DOMAIN,
 };
 
+// Check if all required fields are present
+const hasRequiredFields = serviceAccount.type && 
+                         serviceAccount.project_id && 
+                         serviceAccount.private_key && 
+                         serviceAccount.client_email;
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+if (hasRequiredFields && !admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    firebaseInitialized = true;
+    console.log('Firebase Admin initialized successfully');
+  } catch (error) {
+    console.error('Error initializing Firebase Admin:', error.message);
+    firebaseInitialized = false;
+  }
+} else {
+  console.warn('Firebase Admin not initialized: Missing required environment variables (GOOGLE_TYPE, GOOGLE_PROJECT_ID, GOOGLE_PRIVATE_KEY, GOOGLE_CLIENT_EMAIL)');
+  firebaseInitialized = false;
 }
 
 let scheduledTasks = new Map();
@@ -152,6 +170,12 @@ async function sendNotificationToUser_old_not_in_use(notification, lead, user) {
 const moment1=require('moment-timezone')
 async function sendNotificationToUser(notification, lead, user) {
   try {
+    // Check if Firebase is initialized
+    if (!firebaseInitialized) {
+      console.warn('Firebase Admin not initialized. Skipping notification send.');
+      return;
+    }
+
     const userTimeZone = user?.timeZone || 'Asia/Kolkata'; // Default to 'Asia/Kolkata' if timezone is not provided
     
 const followUpTime = moment1(lead.followUpDate)
