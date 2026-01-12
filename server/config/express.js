@@ -16,6 +16,17 @@ const winston = require('winston');
 const mailer = require('../mailer');
 
 module.exports = function (app) {
+  // Block suspicious requests early (before logging) to reduce log noise
+  app.use((req, res, next) => {
+    const path = req.path || req.url;
+    // Block common bot/scanner patterns silently
+    if (/\.(php|asp|aspx|jsp|cgi|pl|sh|exe|bat|cmd)$/i.test(path) || 
+        /(wp-admin|wp-login|phpmyadmin|adminer|\.env|\.git|\.svn|\.htaccess)/i.test(path)) {
+      return res.status(404).end(); // Silent 404, no logging
+    }
+    next();
+  });
+
   app.use(cors({
     origin: [
       'http://13.200.34.99/',
