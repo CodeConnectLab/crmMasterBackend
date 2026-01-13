@@ -28,15 +28,25 @@ exports.verifyWebhook = async (req, res, next) => {
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
+    console.log('📞 Webhook verification received:', {
+      mode,
+      hasToken: !!token,
+      hasChallenge: !!challenge,
+      ip: req.ip
+    });
+
     // Verify webhook token
     const challengeResponse = await service.verifyWebhook(token, mode, challenge);
 
     if (challengeResponse) {
+      console.log('✅ Webhook verification successful, returning challenge');
       res.status(200).send(challengeResponse);
     } else {
+      console.warn('❌ Webhook verification failed, returning 403');
       res.status(403).send('Forbidden');
     }
   } catch (error) {
+    console.error('❌ Webhook verification error:', error);
     responseHandler.error(res, error, error.message, 500);
   }
 };
@@ -45,7 +55,14 @@ exports.verifyWebhook = async (req, res, next) => {
  * Receive webhook (POST request from Facebook)
  */
 exports.receiveWebhook = (req, res, next) => {
-  // Respond immediately to Facebook
+  // Log incoming webhook
+  console.log('📥 Webhook received from Facebook:', {
+    object: req.body?.object,
+    entryCount: req.body?.entry?.length || 0,
+    ip: req.ip
+  });
+
+  // Respond immediately to Facebook (within 20 seconds)
   res.status(200).send('OK');
 
   // Process webhook asynchronously
@@ -55,6 +72,7 @@ exports.receiveWebhook = (req, res, next) => {
     })
     .catch(error => {
       console.error('❌ Error processing webhook:', error);
+      // Don't throw - we already sent 200 to Facebook
     });
 };
 

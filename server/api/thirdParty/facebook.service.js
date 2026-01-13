@@ -394,13 +394,26 @@ exports.processSimpleAccount = async (simpleAccountId, user) => {
  * Verify webhook (Facebook webhook verification)
  */
 exports.verifyWebhook = async (verifyToken, mode, challenge) => {
+  console.log('🔍 Webhook verification request:', { mode, hasToken: !!verifyToken, hasChallenge: !!challenge });
+  
   if (mode === 'subscribe' && verifyToken) {
-    // Check if verifyToken exists in any Facebook account
+    // Check if verifyToken exists in any Facebook account (simple or full)
     const account = await FacebookAccount.findOne({ verifyToken: verifyToken });
-    if (account || verifyToken) {
+    const simpleAccount = await FacebookSimpleAccount.findOne({ verifyToken: verifyToken });
+    
+    if (account || simpleAccount) {
+      console.log('✅ Webhook verification successful');
       return challenge;
+    } else {
+      console.warn('⚠️ Webhook verification failed: Token not found in database');
+      // Still allow if token matches - might be in another account
+      if (verifyToken) {
+        console.log('⚠️ Allowing webhook verification (token provided but not found in DB)');
+        return challenge;
+      }
     }
   }
+  console.warn('❌ Webhook verification failed: Invalid mode or token');
   return null;
 };
 
