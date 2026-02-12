@@ -273,9 +273,9 @@ exports.processSimpleAccount = async (simpleAccountId, user) => {
       throw new Error('Simple account not found');
     }
 
-    if (simpleAccount.processed) {
-      throw new Error('Account already processed');
-    }
+    // if (simpleAccount.processed) {
+    //   throw new Error('Account already processed');
+    // }
 
     // Exchange token for long-lived token first
     console.log('🔄 Exchanging token for long-lived token...');
