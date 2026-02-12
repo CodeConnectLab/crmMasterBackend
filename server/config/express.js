@@ -32,6 +32,8 @@ module.exports = function (app) {
       'http://13.200.34.99',
         'http://13.200.34.99/',
         'http://localhost:3000',
+        'http://3.7.168.242/',
+        'http://3.7.168.242',
         'http://localhost:5173',
         'http://127.0.0.1:3000',
         'https://crm.codeconnect.in',
