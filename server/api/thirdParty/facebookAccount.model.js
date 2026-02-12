@@ -108,8 +108,8 @@ const facebookAccountSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Index for quick lookups
-facebookAccountSchema.index({ companyId: 1, pageId: 1 }, { unique: true });
+// Index for quick lookups - allows multiple lead forms per page
+facebookAccountSchema.index({ companyId: 1, pageId: 1, leadFormId: 1 }, { unique: true });
 facebookAccountSchema.index({ verifyToken: 1 });
 
 module.exports = mongoose.model('FacebookAccount', facebookAccountSchema);

@@ -542,7 +542,7 @@ exports.getSimpleAccounts = async (req, user) => {
   try {
     const accounts = await FacebookSimpleAccount.find({
       companyId: user?.companyId,
-      processed: false
+      // processed: false
     }).populate('createdBy', 'name email')
       .sort({ createdAt: -1 });
 
