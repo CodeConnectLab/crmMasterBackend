@@ -26,7 +26,7 @@ exports.getAllByCompany = (req, res) => {
       startDate: req.query.startDate,
       endDate: req.query.endDate,
       sortBy: 'updatedAt',
-      sortOrder: 'asc'
+      sortOrder: 'desc'
     };
   
     return service.getAllLeadsByCompany(queryParams, req.user)
@@ -69,7 +69,7 @@ exports.getAllImportedLeadsByCompany = (req, res) => {
       startDate: req.query.startDate,
       endDate: req.query.endDate,
       sortBy: 'followUpDate',
-      sortOrder: 'asc'
+      sortOrder: 'desc'
   };
   return service.getAllImportedLeadsByCompany(queryParams, req.user)
     .then(result =>responseHandler.success1(res, result, "Leads retrieved successfully!", 200))
@@ -89,7 +89,7 @@ exports.getAllOutsourcedLeadsByCompany = (req, res) => {
     startDate: req.query.startDate,
     endDate: req.query.endDate,
     sortBy: 'followUpDate',
-    sortOrder: 'asc'
+    sortOrder: 'desc'
   };
   return service.getAllOutsourcedLeadsByCompany(queryParams, req.user)
     .then(result =>responseHandler.success1(res, result, "Leads retrieved successfully!", 200))
