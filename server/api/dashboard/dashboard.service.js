@@ -117,18 +117,6 @@ const topMetricss = async (start, end, user) => {
     showFollowUp: true
   }).distinct('_id')
 
-  // Get imported status IDs
-  const importedStatusIds = await LeadStatusModel.find({
-    companyId: user.companyId,
-    showImported: true
-  }).distinct('_id')
-
-  // Get OutSourced status IDs
-  const OutSourcedStatusIds = await LeadStatusModel.find({
-    companyId: user.companyId,
-    showOutSourced: true,
-  }).distinct('_id')
-
   // Fetch all metrics in parallel
   const [
     currentLeads,
@@ -156,17 +144,24 @@ const topMetricss = async (start, end, user) => {
       leadStatus: { $in: followupStatusIds }
     }),
 
-    // Imported Leads
-    LeadModel.countDocuments({ ...baseQuery, leadAddType: 'Import', leadUpdated:false, leadStatus: { $in: importedStatusIds } }),
-    LeadModel.countDocuments({ ...previousQuery, leadAddType: 'Import', leadUpdated:false, leadStatus: { $in: importedStatusIds } }),
+    // Imported Leads (aligned with list API: type + not updated; any/no leadStatus)
+    LeadModel.countDocuments({ ...baseQuery, leadAddType: 'Import', leadUpdated: false }),
+    LeadModel.countDocuments({
+      ...previousQuery,
+      leadAddType: 'Import',
+      leadUpdated: false
+    }),
 
-    // Outsourced Leads
-    LeadModel.countDocuments({ ...baseQuery, leadAddType: 'ThirdParty', leadUpdated:false, leadStatus: { $in: OutSourcedStatusIds } }),
+    // Outsourced Leads (aligned with list API: ThirdParty + not updated; any/no leadStatus)
+    LeadModel.countDocuments({
+      ...baseQuery,
+      leadAddType: 'ThirdParty',
+      leadUpdated: false
+    }),
     LeadModel.countDocuments({
       ...previousQuery,
       leadAddType: 'ThirdParty',
-      leadUpdated:false,
-      leadStatus: { $in: OutSourcedStatusIds }
+      leadUpdated: false
     })
   ])
 

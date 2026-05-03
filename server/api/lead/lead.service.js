@@ -623,19 +623,9 @@ const getAllImportedLeadsByCompanyWithPagination = async (
   try {
     const skip = (page - 1) * limit
 
-    // First, get all LeadStatus IDs where showFollowUp is true
-    const importedStatusIds = await LeadStatus.find({
-      companyId,
-      showImported: true
-      // deleted: false,
-      // isActive: true,
-    }).select('_id')
-    const statusIds = importedStatusIds.map((status) => status._id)
-
     let query = {
       companyId: companyId,
-      leadStatus: { $in: statusIds }, // Only include leads with status that have showFollowUp true
-      leadUpdated:false,
+      leadUpdated: false,
       leadAddType: 'Import'
     }
     // Add assignedAgent filter only for User role
@@ -684,14 +674,20 @@ const getAllImportedLeadsByCompanyWithPagination = async (
       query.productService = new Types.ObjectId(filters.productService)
     }
 
-    // Search functionality
+    // Search functionality (combine with TL assignment $or via $and)
     if (filters.search) {
-      query.$or = [
+      const searchOr = [
         { firstName: { $regex: filters.search, $options: 'i' } },
         { email: { $regex: filters.search, $options: 'i' } },
         { contactNumber: { $regex: filters.search, $options: 'i' } },
         { city: { $regex: filters.search, $options: 'i' } }
       ]
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, { $or: searchOr }]
+        delete query.$or
+      } else {
+        query.$or = searchOr
+      }
     }
 
     // Build sort object
@@ -807,27 +803,11 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
 ) => {
     try {
         const skip = (page - 1) * limit;
-         
-        // First, get all LeadStatus IDs where showOutSourced is true
-        const OutSourcedStatusIds = await LeadStatus
-            .find({
-                companyId,
-                showOutSourced: true,
-                // deleted: false,
-                // isActive: true,
-            })
-            .select("_id");
-        const statusIds = OutSourcedStatusIds.map((status) => status._id);
-        // Base query with company and deleted condition
+
         let query = {
             companyId: companyId,
-           // leadStatus: { $in: statusIds }, // Only include leads with status that have showOutSourced true
-            $or: [
-              { leadStatus: { $in: statusIds } }, // Jis lead ka showOutSourced true ho
-              { leadStatus: { $exists: false } }  // Jis lead ka leadStatus field hi na ho
-          ],
-            leadUpdated:false,
-            leadAddType:'ThirdParty'
+            leadUpdated: false,
+            leadAddType: 'ThirdParty'
         };
         // Add assignedAgent filter only for User role
       if (role !== userRoles.SUPER_ADMIN) {
@@ -876,14 +856,20 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
         }
 
 
-        // Search functionality
+        // Search functionality (combine with TL assignment $or via $and)
         if (filters.search) {
-            query.$or = [
+            const searchOr = [
                 { firstName: { $regex: filters.search, $options: 'i' } },
                 { email: { $regex: filters.search, $options: 'i' } },
                 { contactNumber: { $regex: filters.search, $options: 'i' } },
                 { city: { $regex: filters.search, $options: 'i' } }
             ];
+            if (query.$or) {
+                query.$and = [{ $or: query.$or }, { $or: searchOr }];
+                delete query.$or;
+            } else {
+                query.$or = searchOr;
+            }
         }
 
 
