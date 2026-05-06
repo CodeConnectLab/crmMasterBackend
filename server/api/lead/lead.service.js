@@ -13,6 +13,138 @@ const PDFDocument = require('pdfkit');
 const GeoLocationModel = require('../geoLocation/geoLocation.model');
 const userRoles = require('../../config/constants/userRoles');
 // const scheduleLeadNotification  = require('../../queues/notificationQueue').scheduleLeadNotification;
+
+/** Escape user-provided search text for safe use inside MongoDB `$regex`. */
+function escapeMongoRegexChars(str) {
+    return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Branches matched with OR — used for text search across lead fields. */
+function buildLeadSearchOrClause(searchRaw) {
+    if (searchRaw == null || typeof searchRaw !== 'string') return null;
+    const trimmed = searchRaw.trim();
+    if (!trimmed) return null;
+    const safe = escapeMongoRegexChars(trimmed);
+    return [
+        { firstName: { $regex: safe, $options: 'i' } },
+        { email: { $regex: safe, $options: 'i' } },
+        { contactNumber: { $regex: safe, $options: 'i' } },
+        { city: { $regex: safe, $options: 'i' } }
+    ];
+}
+
+/**
+ * Keeps visibility intact for Team Leaders: do not overwrite `query.$or` used for TL scope.
+ */
+function mergeLeadSearchIntoQuery(query, searchRaw) {
+    const searchOr = buildLeadSearchOrClause(searchRaw);
+    if (!searchOr) return;
+
+    if (query.$or) {
+        const visibilityBranch = { $or: query.$or };
+        delete query.$or;
+        query.$and = [...(query.$and || []), visibilityBranch, { $or: searchOr }];
+        return;
+    }
+    query.$or = searchOr;
+}
+
+/** Apply visibility for list/export: Employee = own leads; TL = self + agents with assignedTL; Super Admin = company only */
+async function scopeLeadQueryToUserRole(query, role, companyId, userId) {
+    query.companyId = companyId;
+    if (role !== userRoles.SUPER_ADMIN) {
+        if (role === userRoles.USER) {
+            query.assignedAgent = userId;
+        } else if (role === userRoles.TEAM_ADMIN) {
+            query.$or = [
+                { assignedAgent: userId },
+                {
+                    assignedAgent: {
+                        $in: await User.distinct('_id', { assignedTL: userId })
+                    }
+                }
+            ];
+        }
+    }
+}
+
+/**
+ * Optional `assignedAgent` filter — never lets Employees (or TLs) widen scope beyond what their role allows.
+ */
+async function applyAssignableAgentFilter(query, role, userId, filterAgentIdRaw) {
+    if (filterAgentIdRaw == null || filterAgentIdRaw === '') return;
+    if (!Types.ObjectId.isValid(filterAgentIdRaw)) return;
+
+    const filterOid = new Types.ObjectId(filterAgentIdRaw);
+
+    if (role === userRoles.SUPER_ADMIN) {
+        query.assignedAgent = filterOid;
+        return;
+    }
+
+    if (role === userRoles.USER) {
+        query.assignedAgent = typeof userId === 'string'
+            ? new Types.ObjectId(userId)
+            : userId;
+        return;
+    }
+
+    if (role === userRoles.TEAM_ADMIN) {
+        const teamIds = await User.distinct('_id', { assignedTL: userId });
+        const allowed = new Set([
+            userId?.toString?.() ?? String(userId),
+            ...teamIds.map((id) => id.toString())
+        ]);
+        if (!allowed.has(filterOid.toString())) return;
+        query.assignedAgent = filterOid;
+    }
+}
+
+/** Whether the user may access a single lead row (same rules as scoped lists). */
+async function userCanAccessLeadDoc(lead, user) {
+    if (!lead || !user?.companyId) return false;
+
+    const role = user.role;
+    if (role === userRoles.SUPER_ADMIN) return true;
+
+    const leadCompany = lead.companyId?.toString?.() ?? String(lead.companyId);
+    if (leadCompany !== user.companyId.toString()) return false;
+
+    const rawAgent = lead.assignedAgent;
+    const agentId = rawAgent && rawAgent._id !== undefined ? rawAgent._id : rawAgent;
+
+    if (role === userRoles.USER) {
+        if (!agentId) return false;
+        return agentId.toString() === user._id.toString();
+    }
+
+    if (role === userRoles.TEAM_ADMIN) {
+        if (!agentId) return false;
+        if (agentId.toString() === user._id.toString()) return true;
+        const isTeamMember = await User.exists({
+            _id: agentId,
+            assignedTL: user._id
+        });
+        return !!isTeamMember;
+    }
+
+    return false;
+}
+
+async function fetchLeadsDocumentForExport(user) {
+    const query = {};
+    await scopeLeadQueryToUserRole(query, user.role, user.companyId, user._id);
+    return Lead.find(query)
+        .select('firstName contactNumber leadSource assignedAgent leadStatus productService createdAt')
+        .populate([
+            { path: 'leadSource', select: 'name', model: LeadSource },
+            { path: 'productService', select: 'name', model: ProductService },
+            { path: 'assignedAgent', select: 'name', model: User },
+            { path: 'leadStatus', select: 'name', model: LeadStatus }
+        ])
+        .lean();
+}
+
 const NotificationModel = require('../notificationSetting/notificationSetting.model');
 ////////  lead Save 
 exports.createLeadByCompany = async (res,data, user) => {
@@ -257,29 +389,8 @@ const getAllLeadByCompanyWithPagination = async (
       // Ensure skip calculation is correct
       const skip = Math.max(0, (page - 1) * limit);
 
-      // Base query with company and deleted condition
-      let query = {
-        companyId: companyId
-        //  deleted: false
-      }
-
-      // Add assignedAgent filter only for User role
-      if (role !== userRoles.SUPER_ADMIN) {
-        if (role === userRoles.USER) {
-          // For regular users - show only their own data
-          query.assignedAgent = userId
-        } else if (role === userRoles.TEAM_ADMIN) {
-          // For Team Leaders - show their data AND data of users assigned to them
-          query.$or = [
-            { assignedAgent: userId }, // TL's own data
-            {
-              assignedAgent: {
-                $in: await User.distinct('_id', { assignedTL: userId })
-              }
-            } // Data where agent is any user assigned to this TL
-          ]
-        }
-      }
+      const query = {}
+      await scopeLeadQueryToUserRole(query, role, companyId, userId)
 
       // Add date range filter if provided
       if (filters.startDate && filters.endDate) {
@@ -298,9 +409,7 @@ const getAllLeadByCompanyWithPagination = async (
       if (filters?.leadStatus) {
         query.leadStatus = new Types.ObjectId(filters.leadStatus)
       }
-      if (filters?.assignedAgent) {
-        query.assignedAgent = new Types.ObjectId(filters.assignedAgent)
-      }
+      await applyAssignableAgentFilter(query, role, userId, filters?.assignedAgent)
       if (filters?.leadSource) {
         query.leadSource = new Types.ObjectId(filters.leadSource)
       }
@@ -308,15 +417,7 @@ const getAllLeadByCompanyWithPagination = async (
         query.productService = new Types.ObjectId(filters.productService)
       }
 
-      // Search functionality
-      if (filters?.search) {
-        query.$or = [
-          { firstName: { $regex: filters.search, $options: 'i' } },
-          { email: { $regex: filters.search, $options: 'i' } },
-          { contactNumber: { $regex: filters.search, $options: 'i' } },
-          { city: { $regex: filters.search, $options: 'i' } }
-        ]
-      }
+      mergeLeadSearchIntoQuery(query, filters?.search)
 
       // Build sort object
       const sortObj = {}
@@ -443,33 +544,13 @@ const getAllFollowupLeadByCompanyWithPagination = async (
         // isActive: true,
       }).select('_id')
       const statusIds = followupStatusIds.map((status) => status._id)
-      // Base query with company and deleted condition
-      let query = {
+      const query = {
         companyId: companyId,
         leadUpdated:true,
         leadStatus: { $in: statusIds } // Only include leads with status that have showFollowUp true
       }
 
-    ///skip if leadUpdated is false
-         
-
-      // Add assignedAgent filter only for User role
-      if (role !== userRoles.SUPER_ADMIN) {
-        if (role === userRoles.USER) {
-          // For regular users - show only their own data
-          query.assignedAgent = userId
-        } else if (role === userRoles.TEAM_ADMIN) {
-          // For Team Leaders - show their data AND data of users assigned to them
-          query.$or = [
-            { assignedAgent: userId }, // TL's own data
-            {
-              assignedAgent: {
-                $in: await User.distinct('_id', { assignedTL: userId })
-              }
-            } // Data where agent is any user assigned to this TL
-          ]
-        }
-      }
+      await scopeLeadQueryToUserRole(query, role, companyId, userId)
 
       // Add date range filter if provided
       if (filters.startDate && filters.endDate) {
@@ -489,9 +570,7 @@ const getAllFollowupLeadByCompanyWithPagination = async (
         console.log('filters.leadStatus', filters.leadStatus)
         query.leadStatus = new Types.ObjectId(filters.leadStatus)
       }
-      if (filters.assignedAgent) {
-        query.assignedAgent = new Types.ObjectId(filters.assignedAgent)
-      }
+      await applyAssignableAgentFilter(query, role, userId, filters.assignedAgent)
       if (filters.leadSource) {
         query.leadSource = new Types.ObjectId(filters.leadSource)
       }
@@ -499,15 +578,7 @@ const getAllFollowupLeadByCompanyWithPagination = async (
         query.productService = new Types.ObjectId(filters.productService)
       }
 
-      // Search functionality
-      if (filters.search) {
-        query.$or = [
-          { firstName: { $regex: filters.search, $options: 'i' } },
-          { email: { $regex: filters.search, $options: 'i' } },
-          { contactNumber: { $regex: filters.search, $options: 'i' } },
-          { city: { $regex: filters.search, $options: 'i' } }
-        ]
-      }
+      mergeLeadSearchIntoQuery(query, filters.search)
 
       // Build sort object
       const sortObj = {}
@@ -623,28 +694,12 @@ const getAllImportedLeadsByCompanyWithPagination = async (
   try {
     const skip = (page - 1) * limit
 
-    let query = {
+    const query = {
       companyId: companyId,
       leadUpdated: false,
       leadAddType: 'Import'
     }
-    // Add assignedAgent filter only for User role
-    if (role !== userRoles.SUPER_ADMIN) {
-      if (role === userRoles.USER) {
-        // For regular users - show only their own data
-        query.assignedAgent = userId
-      } else if (role === userRoles.TEAM_ADMIN) {
-        // For Team Leaders - show their data AND data of users assigned to them
-        query.$or = [
-          { assignedAgent: userId }, // TL's own data
-          {
-            assignedAgent: {
-              $in: await User.distinct('_id', { assignedTL: userId })
-            }
-          } // Data where agent is any user assigned to this TL
-        ]
-      }
-    }
+    await scopeLeadQueryToUserRole(query, role, companyId, userId)
 
     // Add date range filter if provided
     if (filters.startDate && filters.endDate) {
@@ -664,9 +719,7 @@ const getAllImportedLeadsByCompanyWithPagination = async (
       console.log('filters.leadStatus', filters.leadStatus)
       query.leadStatus = new Types.ObjectId(filters.leadStatus)
     }
-    if (filters.assignedAgent) {
-      query.assignedAgent = new Types.ObjectId(filters.assignedAgent)
-    }
+    await applyAssignableAgentFilter(query, role, userId, filters.assignedAgent)
     if (filters.leadSource) {
       query.leadSource = new Types.ObjectId(filters.leadSource)
     }
@@ -674,21 +727,7 @@ const getAllImportedLeadsByCompanyWithPagination = async (
       query.productService = new Types.ObjectId(filters.productService)
     }
 
-    // Search functionality (combine with TL assignment $or via $and)
-    if (filters.search) {
-      const searchOr = [
-        { firstName: { $regex: filters.search, $options: 'i' } },
-        { email: { $regex: filters.search, $options: 'i' } },
-        { contactNumber: { $regex: filters.search, $options: 'i' } },
-        { city: { $regex: filters.search, $options: 'i' } }
-      ]
-      if (query.$or) {
-        query.$and = [{ $or: query.$or }, { $or: searchOr }]
-        delete query.$or
-      } else {
-        query.$or = searchOr
-      }
-    }
+    mergeLeadSearchIntoQuery(query, filters.search)
 
     // Build sort object
     const sortObj = {}
@@ -804,28 +843,12 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
     try {
         const skip = (page - 1) * limit;
 
-        let query = {
+        const query = {
             companyId: companyId,
             leadUpdated: false,
             leadAddType: 'ThirdParty'
         };
-        // Add assignedAgent filter only for User role
-      if (role !== userRoles.SUPER_ADMIN) {
-        if (role === userRoles.USER) {
-          // For regular users - show only their own data
-          query.assignedAgent = userId
-        } else if (role === userRoles.TEAM_ADMIN) {
-          // For Team Leaders - show their data AND data of users assigned to them
-          query.$or = [
-            { assignedAgent: userId }, // TL's own data
-            {
-              assignedAgent: {
-                $in: await User.distinct('_id', { assignedTL: userId })
-              }
-            } // Data where agent is any user assigned to this TL
-          ]
-        }
-      }
+        await scopeLeadQueryToUserRole(query, role, companyId, userId);
        
         // Add date range filter if provided
         if (filters.startDate && filters.endDate) {
@@ -845,9 +868,7 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
             console.log("filters.leadStatus",filters.leadStatus)
             query.leadStatus =  new Types.ObjectId(filters.leadStatus);
         }
-        if (filters.assignedAgent) {
-            query.assignedAgent =  new Types.ObjectId(filters.assignedAgent);
-        }
+        await applyAssignableAgentFilter(query, role, userId, filters.assignedAgent);
         if (filters.leadSource) {
             query.leadSource =  new Types.ObjectId(filters.leadSource);
         }
@@ -855,22 +876,7 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
             query.productService =  new Types.ObjectId(filters.productService);
         }
 
-
-        // Search functionality (combine with TL assignment $or via $and)
-        if (filters.search) {
-            const searchOr = [
-                { firstName: { $regex: filters.search, $options: 'i' } },
-                { email: { $regex: filters.search, $options: 'i' } },
-                { contactNumber: { $regex: filters.search, $options: 'i' } },
-                { city: { $regex: filters.search, $options: 'i' } }
-            ];
-            if (query.$or) {
-                query.$and = [{ $or: query.$or }, { $or: searchOr }];
-                delete query.$or;
-            } else {
-                query.$or = searchOr;
-            }
-        }
+        mergeLeadSearchIntoQuery(query, filters.search);
 
 
          // Build sort object
@@ -934,6 +940,13 @@ exports.getLeadUpdate = async (id, data, user) => {
         });
 
         if (!existingLead) {
+            throw {
+                code: 404,
+                message: "Lead not found",
+            };
+        }
+
+        if (!(await userCanAccessLeadDoc(existingLead, user))) {
             throw {
                 code: 404,
                 message: "Lead not found",
@@ -1049,6 +1062,13 @@ exports.getLeadDetails=async (leadId,{},user)=>{
         };
       }
 
+      if (!(await userCanAccessLeadDoc(lead, user))) {
+        throw {
+          code: 404,
+          message: "Lead not found",
+        };
+      }
+
       // Get lead history
 
       const leadObjectId = new Types.ObjectId(leadId);
@@ -1110,9 +1130,9 @@ exports.getLeadDetails=async (leadId,{},user)=>{
 
       return formattedResponse;
     } catch (error) {
-        
+        throw error;
     }
-}
+};
 
 
 //////////  lead bulk update 
@@ -1173,12 +1193,7 @@ exports.bulkDeleteLeads = async (data, user) => {
 ///////////  export excel file
 exports.exportExcel = async (data, user) => {
     try {
-        // Fetch leads data
-        const leads = await Lead.find({
-          companyId: user.companyId, // Security check: only fetch leads from user's company
-        })
-            .select('firstName contactNumber leadSource assignedAgent leadStatus productService createdAt')
-            .lean();
+        const leads = await fetchLeadsDocumentForExport(user);
 
         if (!leads || leads.length === 0) {
             throw new Error('No leads found to export');
@@ -1188,10 +1203,10 @@ exports.exportExcel = async (data, user) => {
         const excelData = leads.map(lead => ({
             'Name': lead?.firstName || '',
             'Number': lead?.contactNumber || '',
-            'Lead Source': lead?.leadSource || '',
-            'Agent': lead?.assignedAgent || '',
-            'Status': lead?.leadStatus || '',
-            'Service': lead?.productService || '',
+            'Lead Source': lead?.leadSource?.name || '',
+            'Agent': lead?.assignedAgent?.name || '',
+            'Status': lead?.leadStatus?.name || '',
+            'Service': lead?.productService?.name || '',
             'Created Date': lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : ''
         }));
 
@@ -1237,12 +1252,7 @@ exports.exportExcel = async (data, user) => {
 ////////   export Pdf file
 exports.exportPDF = async (data, user) => {
   try {
-      // Fetch leads data
-      const leads = await Lead.find({
-        companyId: user.companyId, // Security check: only fetch leads from user's company
-      })
-          .select('firstName contactNumber leadSource assignedAgent leadStatus productService createdAt')
-          .lean();
+      const leads = await fetchLeadsDocumentForExport(user);
 
       if (!leads || leads.length === 0) {
           throw new Error('No leads found to export');
@@ -1313,10 +1323,10 @@ exports.exportPDF = async (data, user) => {
           const rowData = [
               lead?.firstName || '',
               lead?.contactNumber || '',
-              lead?.leadSource || '',
-              lead?.assignedAgent || '',
-              lead?.leadStatus || '',
-              lead?.productService || '',
+              lead?.leadSource?.name || '',
+              lead?.assignedAgent?.name || '',
+              lead?.leadStatus?.name || '',
+              lead?.productService?.name || '',
               lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : ''
           ];
 
