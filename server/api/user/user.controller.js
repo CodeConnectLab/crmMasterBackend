@@ -25,7 +25,16 @@ exports.createAdminWithCompany = (req, res, next) => {
 exports.createSupportUser = (req, res, next) => {
     return service.createSupportUser(req.body, req.user)
         .then(result => responseHandler.success(res, result, "User Creation successful!", 200))
-        .catch(error => responseHandler.error(res, error, error.message, 500));
+        .catch(error => {
+            if (error && typeof error === 'object' && error.code && error.status != null) {
+                return res.status(error.status).json({
+                    error: error.code,
+                    message: error.message || 'Forbidden',
+                });
+            }
+            const message = typeof error === 'string' ? error : (error?.message || 'Error')
+            responseHandler.error(res, error, message, 500);
+        });
 }
 
 exports.userMe = (req, res, next) => {

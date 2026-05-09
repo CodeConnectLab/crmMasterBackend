@@ -11,6 +11,7 @@ const { USER_ROLES } = require('../../config/constants')
 const authService = require('../auth/auth.service')
 const userModel = require('./user.model')
 const companyModel =require('../company/company.model')
+const subscriptionService = require('../subscription/subscription.service')
 // const checkPermission = require('../../utility/permissionCheck')
 // const fs = require('fs')
 const fs = require('fs').promises;
@@ -70,8 +71,9 @@ exports.createAdminWithCompany = async ({companyData, userData, ipaddress},user)
       subscription: {
         plan: 'free',
         startDate: new Date(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days trial
-        status: 'trial'
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: 'trial',
+        userLimit: 3
       }
     }], { session });
     // Generate password hash
@@ -126,7 +128,8 @@ exports.createAdminWithCompany = async ({companyData, userData, ipaddress},user)
 
 
 exports.createSupportUser = async ({name, email, role, password,phone,isActive,assignedTL }, user) => {
-  try {   
+  try {
+    await subscriptionService.assertUserLimitAllowsCreate(user.companyId);
     let emailExists = await UserModel.find({ email }).lean()
     if (emailExists.length) throw 'Email already exists!'
      let phoneExists = await UserModel.find({ phone }).lean()
@@ -170,15 +173,42 @@ exports.findOne = (query) => {
 }
 
 exports.userMe = async (user) => {
-  return UserModel.findById(user._id).select({
-    hashedPassword: 0,
-    passowrdExpiry: 0,
-    otp: 0,
-    otpExpiry: 0,
-    activities: 0,
-    hashSalt: 0,
-    __v: 0
-  })
+  const populated = await UserModel.findById(user._id)
+    .select({
+      hashedPassword: 0,
+      passowrdExpiry: 0,
+      otp: 0,
+      otpExpiry: 0,
+      activities: 0,
+      hashSalt: 0,
+      __v: 0
+    })
+    .populate({
+      path: 'companyId',
+      model: 'company',
+      select: 'name code status subscription'
+    })
+    .lean()
+    .exec()
+
+  if (!populated) {
+    return null
+  }
+
+  const usersUsed = await subscriptionService.countSeatedUsers(user.companyId)
+
+  const companyDoc = populated.companyId
+    ? { ...populated.companyId }
+    : null
+
+  const { companyId: _omit, ...userRest } = populated
+
+  return {
+    ...userRest,
+    companyCode: companyDoc?.code,
+    company: companyDoc || null,
+    subscriptionMeta: { usersUsed }
+  }
 }
 
 exports.updateMe= async ({name,bio},user)=>{
@@ -356,26 +386,24 @@ exports.updateCompanyDetails = async (updateData, user) => {
     }
 
     // Prepare update data
+    // Tenant subscription is CS/system-managed only — never merged from API body
+    const { subscription: _subscriptionFromBodyIgnored, ...updateFields } =
+      typeof updateData === 'object' && updateData !== null ? updateData : {};
+
     const finalUpdateData = {
-      ...updateData,
-      settings: updateData.settings ? {
-        dateFormat: updateData.settings.dateFormat || existingCompany.settings.dateFormat,
-        timezone: updateData.settings.timezone || existingCompany.settings.timezone,
-        currency: updateData.settings.currency || existingCompany.settings.currency,
-        language: updateData.settings.language || existingCompany.settings.language,
-        fiscalYearStart: updateData.settings.fiscalYearStart || existingCompany.settings.fiscalYearStart
+      ...updateFields,
+      settings: updateFields.settings ? {
+        dateFormat: updateFields.settings.dateFormat || existingCompany.settings.dateFormat,
+        timezone: updateFields.settings.timezone || existingCompany.settings.timezone,
+        currency: updateFields.settings.currency || existingCompany.settings.currency,
+        language: updateFields.settings.language || existingCompany.settings.language,
+        fiscalYearStart: updateFields.settings.fiscalYearStart || existingCompany.settings.fiscalYearStart
       } : existingCompany.settings,
-      subscription: updateData.subscription ? {
-        plan: updateData.subscription.plan || existingCompany.subscription.plan,
-        startDate: updateData.subscription.startDate || existingCompany.subscription.startDate,
-        endDate: updateData.subscription.endDate || existingCompany.subscription.endDate,
-        status: updateData.subscription.status || existingCompany.subscription.status,
-        features: updateData.subscription.features || existingCompany.subscription.features
-      } : existingCompany.subscription,
-      primaryContact: updateData.primaryContact ? {
-        name: updateData.primaryContact.name,
-        email: updateData.primaryContact.email,
-        phone: updateData.primaryContact.phone
+      subscription: existingCompany.subscription,
+      primaryContact: updateFields.primaryContact ? {
+        name: updateFields.primaryContact.name,
+        email: updateFields.primaryContact.email,
+        phone: updateFields.primaryContact.phone
       } : existingCompany.primaryContact,
       updatedBy: user._id,
       updatedAt: new Date()

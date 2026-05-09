@@ -6,6 +6,7 @@ const mailer = require("../../mailer/index")
 const verificationTokensService = require("../verificationTokens/verificationTokens.service");
 const userModel = require("../user/user.model");
 const OTPVerification = require("./otpVerification");
+const { checkSubscriptionMiddleware } = require('../subscription/checkSubscription.middleware');
 
 
 exports.logIn = async (res,{
@@ -122,7 +123,7 @@ exports.refresh = async (body, refreshToken) => {
 
         let userObj = await userService.findOne({
             _id: tokenObj.user
-        }).select("_id role")
+        }).select("_id role email companyId")
 
         if (!userObj) throw 'Invalid User!'
 
@@ -176,7 +177,7 @@ exports.isAuthenticated = ({ skipAuth, adminOnly,adminandsupport,logout }) => {
             } 
               // access also for support with admin
             req.user = userObj
-            next()
+            return checkSubscriptionMiddleware(req, res, next)
         } catch (error) {
             return responseHandler.error(res, error, error.message, 401)
         }
