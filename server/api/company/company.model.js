@@ -80,9 +80,20 @@ const companySchema = new Schema({
       type: Date,
       default: Date.now
     },
+    /** CS-maintained label for billing display (optional) */
+    priceLabel: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    userLimit: {
+      type: Number,
+      default: 3,
+      min: [1, 'userLimit must be at least 1']
+    },
     endDate: {
       type: Date,
-      default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days trial
+      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from creation
     },
     status: {
       type: String,

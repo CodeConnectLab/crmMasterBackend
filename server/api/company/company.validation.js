@@ -49,18 +49,6 @@ const companyUpdateValidation = Joi.object({
     fiscalYearStart: Joi.string().default('01-01')
   }),
 
-  subscription: Joi.object({
-    plan: Joi.string()
-      .valid('free', 'starter', 'professional', 'enterprise')
-      .default('free'),
-    startDate: Joi.date().default(Date.now),
-    endDate: Joi.date(),
-    status: Joi.string()
-      .valid('active', 'trial', 'expired')
-      .default('trial'),
-    features: Joi.array().items(Joi.string())
-  }),
-
   logo: Joi.string()
     .allow('', null),
 
@@ -85,6 +73,9 @@ const companyUpdateValidation = Joi.object({
 
 const validateCompanyUpdate = async (req, res, next) => {
   try {
+    if (req.body && typeof req.body === 'object') {
+      delete req.body.subscription;
+    }
     await companyUpdateValidation.validateAsync(req.body, { 
       abortEarly: false,
       allowUnknown: true 
