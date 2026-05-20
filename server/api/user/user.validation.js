@@ -43,6 +43,7 @@ exports.createSupportUser = {
     phone: Joi.string().allow(null),
     isActive:Joi.boolean().allow(null),
     assignedTL: Joi.string().allow('', null).optional(),
+    acceptExtraSeatBeyondPlan: Joi.boolean().optional(),
   })
 }
 

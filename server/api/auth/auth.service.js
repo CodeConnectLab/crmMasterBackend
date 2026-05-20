@@ -9,7 +9,7 @@ const OTPVerification = require("./otpVerification");
 const { checkSubscriptionMiddleware } = require('../subscription/checkSubscription.middleware');
 
 
-exports.logIn = async (res,{
+exports.logIn = async ({
     email,
     phone,
     password,
@@ -18,7 +18,7 @@ exports.logIn = async (res,{
     fcmWebToken
   }) => {
     try {
-      if (!otp && !password) throw 'Credentials missing!';
+      if (!otp && !password) throw new Error('Credentials missing!');
   
       // Find user by email or phone with company details
       const query = email ? { email } : { phone };
@@ -33,11 +33,11 @@ exports.logIn = async (res,{
 
         
         if (!maybeUser){
-          return res.status(500).json({ message: 'Invalid credentials' });
+          throw new Error('Invalid credentials');
         }
         // Check if user is verified
         if (!maybeUser.isActive) {
-          return res.status(500).json({ message: 'User is not Active' });
+          throw new Error('User is not Active');
         }
 
       // if (!maybeUser) throw "User doesn't exist";
@@ -48,21 +48,25 @@ exports.logIn = async (res,{
         let hashedPassword = getHashedPassword(password, maybeUser.hashSalt);
         //if (hashedPassword != maybeUser.hashedPassword) throw "Wrong Password!";
         if (hashedPassword != maybeUser.hashedPassword){
-          return res.status(500).json({ message: 'Wrong Password!' });
+          throw new Error('Wrong Password!');
         }
-        //if (maybeUser.passwordExpiry < new Date()) throw 'Password Expired!';
-        if (maybeUser.passwordExpiry < new Date()){//401
-          return res.status(500).json({ message: 'Password Expired!' });
+        const pwdExpiry = maybeUser.passwordExpiry ?? maybeUser.passowrdExpiry;
+        if (pwdExpiry != null && new Date(pwdExpiry) < new Date()){
+          throw new Error('Password Expired!');
         }
       }
   
       // OTP authentication
       if (otp) {
         let hashedOtp = getHashedPassword(otp, maybeUser.hashSalt);
-        if (hashedOtp != maybeUser.otp) throw "Invalid OTP!";
-        if (maybeUser.otpExpiry < new Date()) throw 'OTP Expired!';
+        if (hashedOtp != maybeUser.otp) throw new Error('Invalid OTP!');
+        if (maybeUser.otpExpiry < new Date()) throw new Error('OTP Expired!');
       }
-  
+
+      if (!maybeUser.companyId || !maybeUser.companyId._id) {
+        throw new Error('Company record missing for user');
+      }
+
       // Check existing login
       let isUserAlreadyLoggedIn = await verificationTokensService.checkUserLoggedIn(maybeUser._id);
   
