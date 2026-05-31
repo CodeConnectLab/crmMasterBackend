@@ -51,7 +51,9 @@ exports.computeState = function computeState(company) {
 exports.getCompanySubscriptionLean = async function getCompanySubscriptionLean(companyId) {
   const id = normalizeCompanyId(companyId);
   if (!id) return null;
-  return Company.findOne({ _id: id, deleted: false }).select('name status subscription').lean();
+  return Company.findOne({ _id: id, deleted: false })
+    .select('name status subscription logo')
+    .lean();
 };
 
 exports.verifyActiveForRequest = async function verifyActiveForRequest(companyId) {
@@ -81,20 +83,41 @@ exports.resolveUserLimit = function resolveUserLimit(company) {
   return 3;
 };
 
+/**
+ * Validates subscription expiry and seated-user cap.
+ * When at or above the plan seat limit, creation is allowed only if acceptExtraSeatBeyondPlan is true.
+ * @returns {{ company: object, seatedCount: number, resolvedLimit: number }}
+ */
+exports.assertSeatCreateAllowed =
+  async function assertSeatCreateAllowed(companyId, options = {}) {
+    const acceptExtraSeatBeyondPlan =
+      options.acceptExtraSeatBeyondPlan === true;
+    const company = await exports.getCompanySubscriptionLean(companyId);
+    if (!company || exports.isExpired(company)) {
+      const err = new Error(SUBSCRIPTION_EXPIRED_MESSAGE);
+      err.code = SUBSCRIPTION_ERROR.SUBSCRIPTION_EXPIRED;
+      err.status = HTTP_FORBIDDEN;
+      throw err;
+    }
+    const resolvedLimit = exports.resolveUserLimit(company);
+    const seatedCount = await exports.countSeatedUsers(companyId);
+
+    if (seatedCount < resolvedLimit) {
+      return { company, seatedCount, resolvedLimit };
+    }
+
+    if (!acceptExtraSeatBeyondPlan) {
+      const err = new Error(USER_LIMIT_EXCEEDED_MESSAGE);
+      err.code = SUBSCRIPTION_ERROR.USER_LIMIT_EXCEEDED;
+      err.status = HTTP_CONFLICT;
+      throw err;
+    }
+
+    return { company, seatedCount, resolvedLimit };
+  };
+
 exports.assertUserLimitAllowsCreate = async function assertUserLimitAllowsCreate(companyId) {
-  const company = await exports.getCompanySubscriptionLean(companyId);
-  if (!company || exports.isExpired(company)) {
-    const err = new Error(SUBSCRIPTION_EXPIRED_MESSAGE);
-    err.code = SUBSCRIPTION_ERROR.SUBSCRIPTION_EXPIRED;
-    err.status = HTTP_FORBIDDEN;
-    throw err;
-  }
-  const limit = exports.resolveUserLimit(company);
-  const count = await exports.countSeatedUsers(companyId);
-  if (count >= limit) {
-    const err = new Error(USER_LIMIT_EXCEEDED_MESSAGE);
-    err.code = SUBSCRIPTION_ERROR.USER_LIMIT_EXCEEDED;
-    err.status = HTTP_CONFLICT;
-    throw err;
-  }
+  await exports.assertSeatCreateAllowed(companyId, {
+    acceptExtraSeatBeyondPlan: false
+  });
 };

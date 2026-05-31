@@ -21,6 +21,7 @@ const { getPresignedUrl } = require('../../helpers/aws-s3.helper')
 const { error } = require('console')
 const userRoles = require('../../config/constants/userRoles')
 const { uploadToS3 } = require('../../helpers/aws-s3.helper');
+const userLimitExtraSeatNotify = require('../../mailer/userLimitExtraSeat.notify');
 ///
 
 /**
@@ -127,12 +128,28 @@ exports.createAdminWithCompany = async ({companyData, userData, ipaddress},user)
 
 
 
-exports.createSupportUser = async ({name, email, role, password,phone,isActive,assignedTL }, user) => {
+exports.createSupportUser = async (
+  {
+    name,
+    email,
+    role,
+    password,
+    phone,
+    isActive,
+    assignedTL,
+    acceptExtraSeatBeyondPlan
+  },
+  user
+) => {
   try {
-    await subscriptionService.assertUserLimitAllowsCreate(user.companyId);
+    const { company, seatedCount: previousCount, resolvedLimit } =
+      await subscriptionService.assertSeatCreateAllowed(user.companyId, {
+        acceptExtraSeatBeyondPlan: acceptExtraSeatBeyondPlan === true
+      })
+
     let emailExists = await UserModel.find({ email }).lean()
     if (emailExists.length) throw 'Email already exists!'
-     let phoneExists = await UserModel.find({ phone }).lean()
+    let phoneExists = await UserModel.find({ phone }).lean()
     if (phoneExists.length) throw 'Phone already exists!'
     let randPassword = password || generatePassword()
     let userSalt = generateSalt()
@@ -146,19 +163,33 @@ exports.createSupportUser = async ({name, email, role, password,phone,isActive,a
       hashedPassword: getHashedPassword(randPassword, userSalt),
       passowrdExpiry: new Date(new Date().setDate(new Date().getDate() + 10)),
       hashSalt: userSalt,
-      companyId:user.companyId
-      // activities: activityService.getActivityForRole(USER_ROLES.SUPPORT_ADMIN)
+      companyId: user.companyId,
+      createdBy: user._id
     })
+
+    const shouldNotifyBilling =
+      previousCount >= resolvedLimit && acceptExtraSeatBeyondPlan === true
+    if (shouldNotifyBilling) {
+      const locals = userLimitExtraSeatNotify.buildLocals({
+        company,
+        previousCount,
+        resolvedLimit,
+        createdUser,
+        performer: user
+      })
+      userLimitExtraSeatNotify.fireNotification(locals)
+    }
+
     return {
       name: createdUser.name,
       email: createdUser.email,
       role: createdUser.role,
       _id: createdUser._id,
       phone: createdUser.phone,
-      isActive:createdUser.isActive,
+      isActive: createdUser.isActive,
       isPrime: createdUser.isPrime,
-      isEmailVerified:createdUser.isEmailVerified,
-      isMobileVerified:createdUser.isMobileVerified,
+      isEmailVerified: createdUser.isEmailVerified,
+      isMobileVerified: createdUser.isMobileVerified,
       profilePic:'https://crm.codeconnect.in/',
     }
   } catch (error) {
