@@ -71,7 +71,12 @@ const leadHistoryController = {
         commentedBy: new mongoose.Types.ObjectId(data.commentedBy),
         companyId: new mongoose.Types.ObjectId(data.companyId),
         leadId: new mongoose.Types.ObjectId(data.leadId),
-        status: new mongoose.Types.ObjectId(data.status)
+        status: new mongoose.Types.ObjectId(data.status),
+        // Engagement metadata — set by lead.service when an actual comment was entered
+        // and (optionally) linked to a recent Call/WhatsApp tap by the same user.
+        isEngagement: !!data.isEngagement,
+        source: data.source || 'API',
+        touchId: data.touchId ? new mongoose.Types.ObjectId(data.touchId) : undefined
       });
       await historyEntry.save();
 
@@ -85,8 +90,10 @@ const leadHistoryController = {
         throw new Error('Failed to retrieve created history entry');
       }
 
-      // Format the response
-      return { 
+      // Format the response. _id is included so callers (e.g. lead.service) can
+      // back-link the touch row to this history row for engagement grading.
+      return {
+        _id: formattedEntry._id,
         COMMENTED_BY: formattedEntry.commentedBy.name,
         DATE: formattedEntry.date,
         STATUS: formattedEntry.status.name,

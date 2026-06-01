@@ -159,7 +159,12 @@ exports.validateUpdateLead = {
       .messages({
         'string.pattern.base': 'Invalid lead Loss ID format',
         'string.base': 'Lead Loss must be a string'
-      })
+      }),
+    // Engagement-tracking metadata. Passed through from client when this update
+    // is the follow-up to an in-app Call/WhatsApp tap. Backend uses these to link
+    // the resulting LeadHistory row to its triggering LeadTouch row.
+    clientNonce: Joi.string().min(8).max(64).allow('', null).optional(),
+    source: Joi.string().valid('MOBILE', 'WEB', 'API').optional()
   })
 }
 

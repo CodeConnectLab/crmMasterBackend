@@ -142,6 +142,20 @@ const leadSchema = new mongoose.Schema({
     ref: 'LostReason',
     required: false
   },
+  // Engagement / touch denormalization — kept on Lead to avoid aggregating per request.
+  // Updated by leadTouch.service on each tap and by lead.service on each engagement.
+  lastTouchAt: {
+    type: Date
+  },
+  lastEngagedAt: {
+    type: Date
+  },
+  // Map of 'YYYY-MM-DD' -> count of engaged updates that day. Cheap leaderboard reads.
+  engagementCountByDay: {
+    type: Map,
+    of: Number,
+    default: {}
+  },
   createdAt: {
     type: Date,
     default: Date.now

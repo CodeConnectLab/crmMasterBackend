@@ -7,6 +7,7 @@ const LeadStatus = require('../leadStatus/leadStatus.model');
 const {validateLeadHistory} = require('./lead.validation');
 const {leadHistoryController} =require('./leadHistory.service');
 const LeadHistory=require('./leadHistory.model');
+const leadTouchService = require('../leadTouch/leadTouch.service');
 const { Types } = require('mongoose');
 const XLSX = require('xlsx');
 const PDFDocument = require('pdfkit');
@@ -991,6 +992,32 @@ exports.getLeadUpdate = async (id, data, user) => {
             };
         }
 
+        // ---- Engagement detection -------------------------------------------------
+        // A LeadHistory row counts as a genuine engagement when the employee actually
+        // typed a comment (per product spec: the comment itself is the engagement
+        // signal — no minimum length, just non-empty).
+        const rawComment = typeof data.comment === 'string' ? data.comment.trim() : '';
+        const isEngagement = rawComment.length > 0;
+        const source = data.source || 'API';
+
+        // If the client passed clientNonce (mobile / web Log-Contact flow) OR a
+        // matching INITIATED touch exists in the last 30 min, link them so this
+        // engagement counts as "Verified" rather than "Low confidence".
+        let linkedTouch = null;
+        if (isEngagement) {
+            try {
+                linkedTouch = await leadTouchService.findOpenTouchForEngagement({
+                    companyId: user.companyId,
+                    userId: user._id,
+                    leadId: id,
+                    clientNonce: data.clientNonce,
+                });
+            } catch (touchErr) {
+                // Non-fatal: failing to find a touch shouldn't block the lead update.
+                console.error('Touch lookup failed during lead update:', touchErr);
+            }
+        }
+
         // Add lead history - Fixed the parameter name from 'id' to 'leadId'
         const LeadHistoryController = await leadHistoryController.addLeadHistory({
             leadId: id,  // Changed from 'id' to 'leadId'
@@ -999,21 +1026,60 @@ exports.getLeadUpdate = async (id, data, user) => {
             status: data.leadStatus,
             followupDate: data.followUpDate,
             comment: data.comment || `Status updated to ${data.leadStatus}`,
+            isEngagement,
+            source,
+            touchId: linkedTouch?._id,
         });
-        // Update lead
-        const updatedLead = await Lead.findByIdAndUpdate(
-            id,
-            {
-                ...data,
-                calanderMassage: data?.comment || null,
-                updatedBy: user._id,
-                updatedAt: new Date(),
-                leadUpdated:true,
-            },
-            { new: true },
-        );
 
-        return { UpdatedLead: updatedLead, LeadHistory: LeadHistoryController };
+        // Promote the linked touch to ENGAGED so leaderboards can count it as
+        // "Verified" (tap + comment within 30 min by the same user).
+        if (isEngagement && linkedTouch && LeadHistoryController?._id) {
+            try {
+                await leadTouchService.markTouchEngaged(
+                    linkedTouch._id,
+                    LeadHistoryController._id
+                );
+            } catch (markErr) {
+                console.error('Failed to mark touch engaged:', markErr);
+            }
+        }
+
+        // Build the Lead update — strip client-only fields that aren't part of the schema.
+        const { clientNonce: _cn, source: _src, ...leadFields } = data;
+
+        // Bump engagement denorm counters so reports / list views don't need to aggregate.
+        const leadSetOps = {
+            ...leadFields,
+            calanderMassage: data?.comment || null,
+            updatedBy: user._id,
+            updatedAt: new Date(),
+            leadUpdated: true,
+        };
+        const leadUpdateOps = { $set: leadSetOps };
+        if (isEngagement) {
+            const today = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
+            leadUpdateOps.$set.lastEngagedAt = new Date();
+            leadUpdateOps.$inc = { [`engagementCountByDay.${today}`]: 1 };
+        }
+
+        // Update lead
+        const updatedLead = await Lead.findByIdAndUpdate(id, leadUpdateOps, {
+            new: true,
+        });
+
+        return {
+            UpdatedLead: updatedLead,
+            LeadHistory: LeadHistoryController,
+            engagement: {
+                recorded: isEngagement,
+                grade: isEngagement
+                    ? linkedTouch
+                        ? 'verified'
+                        : 'low_confidence'
+                    : 'none',
+                touchId: linkedTouch?._id || null,
+            },
+        };
 
     } catch (error) {
         // Added proper error handling
