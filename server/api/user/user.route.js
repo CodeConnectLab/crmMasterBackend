@@ -48,7 +48,7 @@ router.put(
 ///////// update Department list by admin
 router.put(
   usersVersion + "/updateDepartment/:id",
-  joiValidate(validationInputs.updateMe, options),
+  joiValidate(validationInputs.updateDepartment, options),
   auth.isAuthenticated({
     adminOnly: true
   }),

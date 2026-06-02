@@ -22,6 +22,12 @@ const { error } = require('console')
 const userRoles = require('../../config/constants/userRoles')
 const { uploadToS3 } = require('../../helpers/aws-s3.helper');
 const userLimitExtraSeatNotify = require('../../mailer/userLimitExtraSeat.notify');
+const userLimitReactivationNotify = require('../../mailer/userLimitReactivation.notify');
+const {
+  SUBSCRIPTION_ERROR,
+  USER_LIMIT_EXCEEDED_MESSAGE,
+  HTTP_CONFLICT
+} = require('../subscription/subscription.constants');
 ///
 
 /**
@@ -226,7 +232,10 @@ exports.userMe = async (user) => {
     return null
   }
 
-  const usersUsed = await subscriptionService.countSeatedUsers(user.companyId)
+  const [usersUsed, activeUsers] = await Promise.all([
+    subscriptionService.countSeatedUsers(user.companyId),
+    subscriptionService.countActiveUsers(user.companyId)
+  ])
 
   const companyDoc = populated.companyId
     ? { ...populated.companyId }
@@ -238,7 +247,7 @@ exports.userMe = async (user) => {
     ...userRest,
     companyCode: companyDoc?.code,
     company: companyDoc || null,
-    subscriptionMeta: { usersUsed }
+    subscriptionMeta: { usersUsed, activeUsers }
   }
 }
 
@@ -248,7 +257,7 @@ exports.updateMe= async ({name,bio},user)=>{
     select: '-hashedPassword -hashSalt -otp -otpExpiry -resetPasswordToken'});
 }
 
-exports.updateDepartment = async (contentId, { name, bio, isActive, assignedTL, password, email, phone }, user) => {
+exports.updateDepartment = async (contentId, { name, bio, isActive, assignedTL, password, email, phone, acceptExtraSeatBeyondPlan }, user) => {
   try {
       // First check if user exists
       const existingUser = await UserModel.findById(contentId);
@@ -258,11 +267,11 @@ exports.updateDepartment = async (contentId, { name, bio, isActive, assignedTL, 
 
       // Check email uniqueness only if email is being updated
       if (email && email !== existingUser.email) {
-          const emailExists = await UserModel.findOne({ 
+          const emailExists = await UserModel.findOne({
               email,
               _id: { $ne: contentId }  // Exclude current user from check
           }).lean();
-          
+
           if (emailExists) {
               throw new Error('Email already exists for another user!');
           }
@@ -270,13 +279,31 @@ exports.updateDepartment = async (contentId, { name, bio, isActive, assignedTL, 
 
       // Check phone uniqueness only if phone is being updated
       if (phone && phone !== existingUser.phone) {
-          const phoneExists = await UserModel.findOne({ 
+          const phoneExists = await UserModel.findOne({
               phone,
               _id: { $ne: contentId }  // Exclude current user from check
           }).lean();
-          
+
           if (phoneExists) {
               throw new Error('Phone number already exists for another user!');
+          }
+      }
+
+      // Reactivation seat-limit check: only when isActive flips false → true.
+      const isReactivation = isActive === true && existingUser.isActive === false;
+      let reactivationNotifyContext = null;
+      if (isReactivation) {
+          const company = await subscriptionService.getCompanySubscriptionLean(user.companyId);
+          const resolvedLimit = subscriptionService.resolveUserLimit(company);
+          const activeBefore = await subscriptionService.countActiveUsers(user.companyId);
+          if (activeBefore >= resolvedLimit) {
+              if (acceptExtraSeatBeyondPlan !== true) {
+                  const err = new Error(USER_LIMIT_EXCEEDED_MESSAGE);
+                  err.code = SUBSCRIPTION_ERROR.USER_LIMIT_EXCEEDED;
+                  err.status = HTTP_CONFLICT;
+                  throw err;
+              }
+              reactivationNotifyContext = { company, activeBefore, resolvedLimit };
           }
       }
 
@@ -313,9 +340,23 @@ exports.updateDepartment = async (contentId, { name, bio, isActive, assignedTL, 
           throw new Error('Error updating user');
       }
 
+      if (reactivationNotifyContext) {
+          const locals = userLimitReactivationNotify.buildLocals({
+              company: reactivationNotifyContext.company,
+              activeBefore: reactivationNotifyContext.activeBefore,
+              resolvedLimit: reactivationNotifyContext.resolvedLimit,
+              reactivatedUser: updatedUser,
+              performer: user
+          });
+          userLimitReactivationNotify.fireNotification(locals);
+      }
+
       return updatedUser;
 
   } catch (error) {
+      if (error && typeof error === 'object' && error.code && error.status != null) {
+          throw error;
+      }
       throw error.message || 'Error updating user';
   }
 };
