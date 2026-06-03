@@ -65,6 +65,19 @@ exports.updateMe={
   }).min(1)
 }
 
+exports.updateDepartment={
+  body:Joi.object({
+    name: Joi.string().min(2).max(50).optional(),
+    phone: Joi.string().pattern(/^[0-9]{10}$/).optional(),
+    email: Joi.string().email().optional(),
+    password: Joi.string().optional().min(8),
+    bio: Joi.string().max(500).optional(),
+    isActive:Joi.boolean().optional(),
+    assignedTL: Joi.string().allow('', null).hex().length(24).optional(),
+    acceptExtraSeatBeyondPlan: Joi.boolean().optional(),
+  }).min(1)
+}
+
 exports.DeleteUser={
   body: Joi.object({
     deleteUserId: Joi.string().required(),

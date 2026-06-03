@@ -77,6 +77,11 @@ exports.countSeatedUsers = async function countSeatedUsers(companyId) {
   return UserModel.countDocuments({ companyId: id }).exec();
 };
 
+exports.countActiveUsers = async function countActiveUsers(companyId) {
+  const id = normalizeCompanyId(companyId);
+  return UserModel.countDocuments({ companyId: id, isActive: true }).exec();
+};
+
 exports.resolveUserLimit = function resolveUserLimit(company) {
   const raw = company?.subscription?.userLimit;
   if (typeof raw === 'number' && !Number.isNaN(raw) && raw >= 1) return raw;
