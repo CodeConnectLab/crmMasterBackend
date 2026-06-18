@@ -96,6 +96,36 @@ exports.getAllOutsourcedLeadsByCompany = (req, res) => {
     .catch(error => responseHandler.error(res, error, error.message, 500));
 }
 
+/////////// lead buckets: idle / unassigned / new
+const buildBucketParams = (req) => ({
+  page: req.query.page,
+  limit: req.query.limit,
+  search: req.query.search,
+  leadStatus: req.query.leadStatus,
+  assignedAgent: req.query.assignedAgent,
+  leadSource: req.query.leadSource,
+  productService: req.query.productService,
+  startDate: req.query.startDate,
+  endDate: req.query.endDate,
+  sortBy: req.query.sortBy || 'createdAt',
+  sortOrder: req.query.sortOrder || 'desc'
+});
+
+exports.getAllIdleLeadsByCompany = (req, res) =>
+  service.getAllIdleLeadsByCompany(buildBucketParams(req), req.user)
+    .then(result => responseHandler.success1(res, result, "Leads retrieved successfully!", 200))
+    .catch(error => responseHandler.error(res, error, error.message, 500));
+
+exports.getAllUnassignedLeadsByCompany = (req, res) =>
+  service.getAllUnassignedLeadsByCompany(buildBucketParams(req), req.user)
+    .then(result => responseHandler.success1(res, result, "Leads retrieved successfully!", 200))
+    .catch(error => responseHandler.error(res, error, error.message, 500));
+
+exports.getAllNewLeadsByCompany = (req, res) =>
+  service.getAllNewLeadsByCompany(buildBucketParams(req), req.user)
+    .then(result => responseHandler.success1(res, result, "Leads retrieved successfully!", 200))
+    .catch(error => responseHandler.error(res, error, error.message, 500));
+
   /////////  update lead
   exports.getLeadUpdate = (req, res) => {
       return service.getLeadUpdate(req.params.id,req.body,req.user)

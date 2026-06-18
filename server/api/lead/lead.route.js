@@ -73,6 +73,23 @@ router.get(
   controller.getAllOutsourcedLeadsByCompany
 )
 
+////get lead buckets: idle / unassigned / new
+router.get(
+  usersVersion + '/lead/idle',
+  auth.isAuthenticated({}),
+  controller.getAllIdleLeadsByCompany
+)
+router.get(
+  usersVersion + '/lead/unassigned',
+  auth.isAuthenticated({}),
+  controller.getAllUnassignedLeadsByCompany
+)
+router.get(
+  usersVersion + '/lead/new',
+  auth.isAuthenticated({}),
+  controller.getAllNewLeadsByCompany
+)
+
 ///////////  lead update
 router.put(
   usersVersion + '/lead/:id',

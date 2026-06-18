@@ -117,6 +117,20 @@ const topMetricss = async (start, end, user) => {
     showFollowUp: true
   }).distinct('_id')
 
+  // Bucket matches (role-scoped via baseQuery). Idle = assigned + no status;
+  // Unassigned = no agent (super-admin only, else scoped to 0); New = last 24h.
+  const isSuperAdmin = user.role === userRoles.SUPER_ADMIN;
+  const newCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const idleMatch = { ...baseQuery, leadStatus: null };
+  if (idleMatch.assignedAgent === undefined) idleMatch.assignedAgent = { $ne: null };
+  const unassignedMatch = isSuperAdmin ? { ...baseQuery, assignedAgent: null } : null;
+  // New = created in last 24h AND untouched (no status, no agent). Super-admin
+  // scoped only (others are restricted to their own assigned leads).
+  const newMatch = isSuperAdmin
+    ? { ...baseQuery, createdAt: { $gte: newCutoff }, assignedAgent: null, leadStatus: null }
+    : null;
+
   // Fetch all metrics in parallel
   const [
     currentLeads,
@@ -126,7 +140,10 @@ const topMetricss = async (start, end, user) => {
     importedLeads,
     previousImportedLeads,
     outsourcedLeads,
-    previousOutsourcedLeads
+    previousOutsourcedLeads,
+    idleLeads,
+    unassignedLeads,
+    newLeads
   ] = await Promise.all([
     // Total Leads
     LeadModel.countDocuments(baseQuery),
@@ -162,7 +179,12 @@ const topMetricss = async (start, end, user) => {
       ...previousQuery,
       leadAddType: 'ThirdParty',
       leadUpdated: false
-    })
+    }),
+
+    // Bucket counts
+    LeadModel.countDocuments(idleMatch),
+    unassignedMatch ? LeadModel.countDocuments(unassignedMatch) : Promise.resolve(0),
+    newMatch ? LeadModel.countDocuments(newMatch) : Promise.resolve(0)
   ])
 
   // Calculate percentage changes
@@ -211,7 +233,32 @@ const topMetricss = async (start, end, user) => {
       color: '#0804ff',
       webroute: 'https://crm.codeconnect.in/leads/outsourced-leads',
       deeplink: 'allOutsourceLeads'
+    },
+    {
+      value: formatNumber(idleLeads),
+      change: 0,
+      title: 'Idle Leads',
+      color: '#f59e0b',
+      webroute: 'https://crm.codeconnect.in/leads/bucket/idle',
+      deeplink: 'idleLeads'
     }
+    // Commented for now — revisit later (handled via All Leads advanced filter).
+    // {
+    //   value: formatNumber(unassignedLeads),
+    //   change: 0,
+    //   title: 'Unassigned Leads',
+    //   color: '#ef4444',
+    //   webroute: 'https://crm.codeconnect.in/leads/bucket/unassigned',
+    //   deeplink: 'unassignedLeads'
+    // },
+    // {
+    //   value: formatNumber(newLeads),
+    //   change: 0,
+    //   title: 'New Leads',
+    //   color: '#10b981',
+    //   webroute: 'https://crm.codeconnect.in/leads/bucket/new',
+    //   deeplink: 'newLeads'
+    // }
   ])
 }
 
@@ -815,9 +862,21 @@ const leadSourceMetricsss = async (start, end, user) => {
                   cond: {
                     $and: [
                       { $not: [{ $in: ['$$lead.leadStatus', wonStatusIds] }] },
-                      { $not: [{ $in: ['$$lead.leadStatus', lossStatusIds] }] }
+                      { $not: [{ $in: ['$$lead.leadStatus', lossStatusIds] }] },
+                      // Has a status assigned — idle (status-less) leads counted separately
+                      { $ne: [{ $ifNull: ['$$lead.leadStatus', null] }, null] }
                     ]
                   }
+                }
+              }
+            },
+            idleLeads: {
+              $size: {
+                $filter: {
+                  input: '$leads',
+                  as: 'lead',
+                  // No status set at all (null or missing field)
+                  cond: { $eq: [{ $ifNull: ['$$lead.leadStatus', null] }, null] }
                 }
               }
             },
@@ -873,8 +932,9 @@ const leadSourceMetricsss = async (start, end, user) => {
             // leadFirstName: { $arrayElemAt: ['$firstNames', 0] },
             //  leadLastName: { $arrayElemAt: ['$lastNames', 0] },
             assignedLeads: 1,
-            closed: '$closedLeads',
+            won: '$wonLeads',
             open: '$openLeads',
+            idle: '$idleLeads',
             failed: '$failedLeads',
             totalRevenue: 1,
             conversion: {

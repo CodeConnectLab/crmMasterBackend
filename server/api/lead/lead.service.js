@@ -69,11 +69,36 @@ async function scopeLeadQueryToUserRole(query, role, companyId, userId) {
     }
 }
 
+// Sentinel value used by the advanced filter to mean "no value in this category"
+// (e.g. unassigned agent, no status). MongoDB `{ field: null }` matches both
+// explicit null and a missing field, which is exactly what we want.
+const FILTER_NONE = 'none';
+
+/**
+ * Apply an optional reference-field filter (leadStatus / leadSource / productService).
+ * Supports the FILTER_NONE sentinel to match leads that have no value in that field.
+ */
+function applyRefFilter(query, field, raw) {
+    if (raw == null || raw === '') return;
+    query[field] = raw === FILTER_NONE ? null : new Types.ObjectId(raw);
+}
+
 /**
  * Optional `assignedAgent` filter — never lets Employees (or TLs) widen scope beyond what their role allows.
  */
 async function applyAssignableAgentFilter(query, role, userId, filterAgentIdRaw) {
     if (filterAgentIdRaw == null || filterAgentIdRaw === '') return;
+
+    // "Unassigned" filter: only Super Admins can see company-wide unassigned leads.
+    // Employees / Team Admins are already scoped to their own (assigned) leads, so the
+    // filter is a no-op for them rather than leaking unassigned leads across roles.
+    if (filterAgentIdRaw === FILTER_NONE) {
+        if (role === userRoles.SUPER_ADMIN) {
+            query.assignedAgent = null;
+        }
+        return;
+    }
+
     if (!Types.ObjectId.isValid(filterAgentIdRaw)) return;
 
     const filterOid = new Types.ObjectId(filterAgentIdRaw);
@@ -407,16 +432,10 @@ const getAllLeadByCompanyWithPagination = async (
       }
 
       // Add specific filters if provided
-      if (filters?.leadStatus) {
-        query.leadStatus = new Types.ObjectId(filters.leadStatus)
-      }
+      applyRefFilter(query, 'leadStatus', filters?.leadStatus)
       await applyAssignableAgentFilter(query, role, userId, filters?.assignedAgent)
-      if (filters?.leadSource) {
-        query.leadSource = new Types.ObjectId(filters.leadSource)
-      }
-      if (filters?.productService) {
-        query.productService = new Types.ObjectId(filters.productService)
-      }
+      applyRefFilter(query, 'leadSource', filters?.leadSource)
+      applyRefFilter(query, 'productService', filters?.productService)
 
       mergeLeadSearchIntoQuery(query, filters?.search)
 
@@ -567,17 +586,10 @@ const getAllFollowupLeadByCompanyWithPagination = async (
       }
 
       // Add specific filters if provided
-      if (filters.leadStatus) {
-        console.log('filters.leadStatus', filters.leadStatus)
-        query.leadStatus = new Types.ObjectId(filters.leadStatus)
-      }
+      applyRefFilter(query, 'leadStatus', filters.leadStatus)
       await applyAssignableAgentFilter(query, role, userId, filters.assignedAgent)
-      if (filters.leadSource) {
-        query.leadSource = new Types.ObjectId(filters.leadSource)
-      }
-      if (filters.productService) {
-        query.productService = new Types.ObjectId(filters.productService)
-      }
+      applyRefFilter(query, 'leadSource', filters.leadSource)
+      applyRefFilter(query, 'productService', filters.productService)
 
       mergeLeadSearchIntoQuery(query, filters.search)
 
@@ -695,10 +707,24 @@ const getAllImportedLeadsByCompanyWithPagination = async (
   try {
     const skip = (page - 1) * limit
 
+    // Only include leads whose status has the "Imported" toggle enabled
+    // (showImported === true). Fresh leads with no status yet (null/unset) are
+    // still shown. Mirrors the Outsourced Leads behaviour.
+    const importedStatuses = await LeadStatus.find({
+      companyId,
+      showImported: true
+    }).select('_id')
+    const importedStatusIds = importedStatuses.map((status) => status._id)
+
     const query = {
       companyId: companyId,
       leadUpdated: false,
-      leadAddType: 'Import'
+      leadAddType: 'Import',
+      $or: [
+        { leadStatus: { $in: importedStatusIds } },
+        { leadStatus: { $exists: false } },
+        { leadStatus: null }
+      ]
     }
     await scopeLeadQueryToUserRole(query, role, companyId, userId)
 
@@ -716,17 +742,10 @@ const getAllImportedLeadsByCompanyWithPagination = async (
     }
 
     // Add specific filters if provided
-    if (filters.leadStatus) {
-      console.log('filters.leadStatus', filters.leadStatus)
-      query.leadStatus = new Types.ObjectId(filters.leadStatus)
-    }
+    applyRefFilter(query, 'leadStatus', filters.leadStatus)
     await applyAssignableAgentFilter(query, role, userId, filters.assignedAgent)
-    if (filters.leadSource) {
-      query.leadSource = new Types.ObjectId(filters.leadSource)
-    }
-    if (filters.productService) {
-      query.productService = new Types.ObjectId(filters.productService)
-    }
+    applyRefFilter(query, 'leadSource', filters.leadSource)
+    applyRefFilter(query, 'productService', filters.productService)
 
     mergeLeadSearchIntoQuery(query, filters.search)
 
@@ -844,10 +863,25 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
     try {
         const skip = (page - 1) * limit;
 
+        // Only include leads whose status has the "Out-Sourced" toggle enabled
+        // (showOutSourced === true) on the Lead Status List. Fresh leads that
+        // have not been given a status yet (leadStatus null/unset) are still
+        // shown, since the page is meant to surface untouched third-party leads.
+        const outsourcedStatuses = await LeadStatus.find({
+            companyId,
+            showOutSourced: true
+        }).select('_id');
+        const outsourcedStatusIds = outsourcedStatuses.map((status) => status._id);
+
         const query = {
             companyId: companyId,
             leadUpdated: false,
-            leadAddType: 'ThirdParty'
+            leadAddType: 'ThirdParty',
+            $or: [
+                { leadStatus: { $in: outsourcedStatusIds } },
+                { leadStatus: { $exists: false } },
+                { leadStatus: null }
+            ]
         };
         await scopeLeadQueryToUserRole(query, role, companyId, userId);
        
@@ -865,17 +899,10 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
         }
 
         // Add specific filters if provided
-        if (filters.leadStatus) {
-            console.log("filters.leadStatus",filters.leadStatus)
-            query.leadStatus =  new Types.ObjectId(filters.leadStatus);
-        }
+        applyRefFilter(query, 'leadStatus', filters.leadStatus);
         await applyAssignableAgentFilter(query, role, userId, filters.assignedAgent);
-        if (filters.leadSource) {
-            query.leadSource =  new Types.ObjectId(filters.leadSource);
-        }
-        if (filters.productService) {
-            query.productService =  new Types.ObjectId(filters.productService);
-        }
+        applyRefFilter(query, 'leadSource', filters.leadSource);
+        applyRefFilter(query, 'productService', filters.productService);
 
         mergeLeadSearchIntoQuery(query, filters.search);
 
@@ -929,9 +956,95 @@ const getAllOutsourcedLeadsByCompanyWithPagination = async (
 
 
 
+/* ------------------------------------------------------------------ *
+ * Lead buckets: Idle / Unassigned / New (24h)
+ * Generic, paginated, role-scoped list shared by all three buckets.
+ * `bucketMatch` is the bucket-specific Mongo match merged into the query.
+ * ------------------------------------------------------------------ */
+const LEAD_LIST_POPULATE = [
+    { path: 'leadSource', select: '_id name', model: 'LeadSource' },
+    { path: 'productService', select: '_id name', model: 'ProductService' },
+    { path: 'assignedAgent', select: '_id name', model: 'User' },
+    { path: 'leadStatus', select: '_id name color', model: 'LeadStatus' }
+];
+
+const getLeadsBucketWithPagination = async (role, companyId, userId, page, limit, filters, bucketMatch) => {
+    try {
+        const skip = (page - 1) * limit;
+        const query = { companyId, ...bucketMatch };
+        await scopeLeadQueryToUserRole(query, role, companyId, userId);
+
+        if (filters.startDate && filters.endDate) {
+            const start = new Date(filters.startDate);
+            start.setUTCHours(0, 0, 0, 0);
+            const end = new Date(filters.endDate);
+            end.setUTCHours(23, 59, 59, 999);
+            query.followUpDate = { $gte: start, $lte: end };
+        }
+
+        applyRefFilter(query, 'leadStatus', filters.leadStatus);
+        await applyAssignableAgentFilter(query, role, userId, filters.assignedAgent);
+        applyRefFilter(query, 'leadSource', filters.leadSource);
+        applyRefFilter(query, 'productService', filters.productService);
+        mergeLeadSearchIntoQuery(query, filters.search);
+
+        const sortObj = {};
+        sortObj[filters.sortBy] = filters.sortOrder === 'desc' ? -1 : 1;
+
+        const total = await Lead.countDocuments(query);
+        const leads = await Lead.find(query)
+            .skip(skip)
+            .limit(limit)
+            .sort(sortObj)
+            .populate(LEAD_LIST_POPULATE)
+            .lean();
+
+        return { data: leads, total, page, limit, totalPages: Math.ceil(total / limit) };
+    } catch (error) {
+        console.error('Error in getLeadsBucketWithPagination:', error);
+        throw error;
+    }
+};
+
+const runBucket = async (params, user, bucketMatch) => {
+    if (!user?.companyId || !user?._id) throw new Error('Invalid user data');
+    const {
+        page = 1, limit = 10, search = '', leadStatus, assignedAgent,
+        leadSource, productService, startDate, endDate,
+        sortBy = 'createdAt', sortOrder = 'desc'
+    } = params;
+    const data = await getLeadsBucketWithPagination(
+        user.role, user.companyId, user._id, Number(page), Number(limit),
+        { search, leadStatus, assignedAgent, leadSource, productService, startDate, endDate, sortBy, sortOrder },
+        bucketMatch
+    );
+    return {
+        data: data.data,
+        options: { pagination: { total: data.total, page: data.page, totalPages: data.totalPages, limit: data.limit } }
+    };
+};
+
+// Idle = assigned to someone but no status set yet (assigned, no work done).
+exports.getAllIdleLeadsByCompany = (params, user) =>
+    runBucket(params, user, { assignedAgent: { $ne: null }, leadStatus: null });
+
+// Unassigned = no agent assigned at all.
+exports.getAllUnassignedLeadsByCompany = (params, user) =>
+    runBucket(params, user, { assignedAgent: null });
+
+// New = created within the last 24 hours (rolling) AND untouched: no status
+// and no agent assigned yet.
+exports.getAllNewLeadsByCompany = (params, user) => {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return runBucket(params, user, {
+        createdAt: { $gte: cutoff },
+        assignedAgent: null,
+        leadStatus: null
+    });
+};
 
 
-///////////  Lead Update 
+///////////  Lead Update
 exports.getLeadUpdate = async (id, data, user) => {
     try {
         // Check if lead exists and belongs to company
@@ -1209,6 +1322,9 @@ exports.bulkUpdateLeads = async (data, user) => {
         const updateData = {};
         if (assignedAgent) updateData.assignedAgent = new Types.ObjectId(assignedAgent);
         if (leadStatus) updateData.leadStatus = new Types.ObjectId(leadStatus);
+        // Assigning an agent or status counts as the lead being worked, so mark it
+        // updated — this moves it off the Outsourced/Imported "untouched" lists.
+        if (assignedAgent || leadStatus) updateData.leadUpdated = true;
 
         // Update multiple documents
         const result = await Lead.updateMany(
