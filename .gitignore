@@ -10,3 +10,6 @@ server/api/notificationSetting/serviceAccountKey.json
 **/serviceAccountKey.json
 *.json.key
 *.key.json
+
+# Migration backups
+server/migrations/backup-20260618-141629

@@ -176,9 +176,44 @@ exports.OutsourceLead = async (apiKey, body) => {
     if (!LeadSource || !Company) {
       throw new Error('Invalid API key - Invalid LeadSource or Company')
     }
+
+    // Normalise the incoming phone so dedup is not defeated by stray spaces.
+    const contactNumber = body.contactNumber
+      ? String(body.contactNumber).trim()
+      : ''
+
+    // De-duplication: a lead with the same contactNumber for this company is
+    // considered a duplicate UNLESS the previous one is older than the window
+    // (genuine re-inquiries after a long gap are allowed through as new leads).
+    // Window is configurable via env; defaults to 30 days.
+    if (contactNumber) {
+      const dedupDays = parseInt(
+        process.env.OUTSOURCE_LEAD_DEDUP_DAYS || '30',
+        10
+      )
+      const windowStart = new Date(Date.now() - dedupDays * 24 * 60 * 60 * 1000)
+
+      const existingLead = await LeadModel.findOne({
+        companyId: companyId,
+        contactNumber: contactNumber,
+        createdAt: { $gte: windowStart }
+      }).sort({ createdAt: -1 })
+
+      if (existingLead) {
+        // Idempotent response: do NOT insert; return the existing lead so the
+        // caller (sheet sync / Facebook) treats the row as already handled.
+        return {
+          lead: existingLead,
+          duplicate: true,
+          message: `Duplicate contactNumber within ${dedupDays} days — existing lead returned, no new lead created.`
+        }
+      }
+    }
+
     // Create lead data object
     const leadData = {
       ...body,
+      contactNumber: contactNumber,
       leadAddType: 'ThirdParty',
       leadSource: leadSource,
       companyId: companyId,
@@ -193,7 +228,8 @@ exports.OutsourceLead = async (apiKey, body) => {
     }
     // Return the saved lead data
     return {
-      lead: savedLead
+      lead: savedLead,
+      duplicate: false
     }
   } catch (error) {
     console.error('Error in OutsourceLead:', error)

@@ -11,6 +11,10 @@ require('dotenv').config({
 const { initializeNotificationScheduler, refreshSchedules } = require('./api/notificationSetting/sendPushNotification');
 // Initialize when app starts
  initializeNotificationScheduler();
+
+/////////// purge old call history (>60 days) daily
+const { initCallHistoryPurgeCron } = require('./api/callHistory/purgeOldCallHistory');
+initCallHistoryPurgeCron();
 process.env.NODE_ENV = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 const config = require('./config/environment');

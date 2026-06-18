@@ -173,6 +173,10 @@ const leadSchema = new mongoose.Schema({
 // Indexes
 leadSchema.index({ companyId: 1 });
 leadSchema.index({ contactNumber: 1 });
+// Speeds up the third-party / Facebook lead de-duplication lookup
+// (companyId + contactNumber, most-recent first). Non-unique on purpose:
+// genuine re-inquiries after the dedup window are allowed as new leads.
+leadSchema.index({ companyId: 1, contactNumber: 1, createdAt: -1 });
 leadSchema.index({ assignedAgent: 1 });
 leadSchema.index({ leadStatus: 1 });
 leadSchema.index({ leadSource: 1 });
