@@ -16,8 +16,7 @@ const mongoose = require('mongoose');
 
 (async () => {
   const uri =
-    process.env.MONGO_URI ||
-    'mongodb+srv://codeconnect123:codeconnect123@cluster0.ocxugzh.mongodb.net/mydatabase?retryWrites=true&w=majority';
+    process.env.MONGO_URI
   if (!uri) throw new Error('Set MONGO_URI');
   await mongoose.connect(uri);
 
@@ -29,7 +28,7 @@ const mongoose = require('mongoose');
         : ['Import', 'ThirdParty'];
 
   const filter = { leadAddType: { $in: types }, leadUpdated: false };
-  const COMPANY_ID = process.env.COMPANY_ID || '69d4786b6a13471034370e79';
+  const COMPANY_ID = process.env.COMPANY_ID ;
   if (COMPANY_ID) filter.companyId = new mongoose.Types.ObjectId(COMPANY_ID);
 
   const leads = mongoose.connection.db.collection('leads');
