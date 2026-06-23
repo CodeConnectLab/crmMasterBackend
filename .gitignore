@@ -13,3 +13,4 @@ server/api/notificationSetting/serviceAccountKey.json
 
 # Migration backups
 server/migrations/backup-20260618-141629
+server/migrations/restoration

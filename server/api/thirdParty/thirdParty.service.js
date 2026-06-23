@@ -188,7 +188,7 @@ exports.OutsourceLead = async (apiKey, body) => {
     // Window is configurable via env; defaults to 30 days.
     if (contactNumber) {
       const dedupDays = parseInt(
-        process.env.OUTSOURCE_LEAD_DEDUP_DAYS || '30',
+        process.env.OUTSOURCE_LEAD_DEDUP_DAYS || '0',
         10
       )
       const windowStart = new Date(Date.now() - dedupDays * 24 * 60 * 60 * 1000)
