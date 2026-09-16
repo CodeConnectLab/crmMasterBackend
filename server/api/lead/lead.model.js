@@ -50,6 +50,50 @@ const leadSchema = new mongoose.Schema({
     required: false
   },
   // Facebook lead integration fields
+  // WhatsApp (Click-to-WhatsApp) lead integration fields.
+  // Sent by the WhatsApp panel's CRM bridge. Mongoose runs in strict mode, so these
+  // have to exist here or the bridge's payload is silently discarded on save.
+  waId: {
+    type: String,
+    required: false,
+    index: true
+  },
+  // Chat in the WhatsApp panel, for deep-linking from the lead detail page.
+  waChatId: {
+    type: String,
+    required: false
+  },
+  // Click id Meta mints at the ad tap — needed to report conversions back to Meta.
+  waCtwaClid: {
+    type: String,
+    required: false
+  },
+  // Ad id when waSourceType is 'ad', post id when it is 'post'.
+  waSourceId: {
+    type: String,
+    required: false
+  },
+  waSourceType: {
+    type: String,
+    required: false
+  },
+  waSourceUrl: {
+    type: String,
+    required: false
+  },
+  waAdHeadline: {
+    type: String,
+    required: false
+  },
+  waAdBody: {
+    type: String,
+    required: false
+  },
+  // The lead's opening WhatsApp message, in their own words.
+  waFirstMessage: {
+    type: String,
+    required: false
+  },
   contactNumber: {
     type: String,
     required: false
