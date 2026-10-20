@@ -23,13 +23,17 @@ const UserSchema = new Schema({
   role: {
     type: String,
     required: true,
-    enum: ['Super Admin', 'Employee', 'Team Leader'],
+    enum: ['Super Admin', 'Employee', 'Team Leader', 'Platform Admin'],
     default: 'Employee'
   },
   companyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "company",
-    required: true
+    // Required for every tenant user; the global "Platform Admin" identity is
+    // not tied to any company, so companyId is optional only for that role.
+    required: function () {
+      return this.role !== 'Platform Admin';
+    }
   },
   phone: {
     type: String,

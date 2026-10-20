@@ -25,6 +25,19 @@ const express = require('express'),
        // auth1.isAuthenticated({logout:true}),
      controller.handleLogout);
 
+    //////  Platform Admin "login as any user" (impersonation)
+    router.post(
+      auth + "/auth/impersonate",
+      joiValidate(validationInputs.validateImpersonate, options),
+      controller.impersonate
+    );
+
+    //////  End an active impersonation session
+    router.post(
+      auth + "/auth/impersonate/exit",
+      controller.endImpersonation
+    );
+
 router.post(auth + "/refresh",
     controller.refresh);
 

@@ -12,6 +12,31 @@ exports.logIn = (req, res, next) => {
           ));
 }
 
+exports.impersonate = (req, res, next) => {
+    const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip;
+    return service.impersonate({ ...req.body, ip })
+        .then(result => responseHandler.success(res, result, "Impersonation session started!", 200))
+        .catch(error =>
+          responseHandler.error(
+            res,
+            error,
+            typeof error === 'string' ? error : error?.message || 'Impersonation failed',
+            401
+          ));
+}
+
+exports.endImpersonation = (req, res, next) => {
+    return service.endImpersonation({ token: req.headers.authorization })
+        .then(result => responseHandler.success(res, result, "Impersonation session ended!", 200))
+        .catch(error =>
+          responseHandler.error(
+            res,
+            error,
+            typeof error === 'string' ? error : error?.message || 'Failed to end impersonation',
+            500
+          ));
+}
+
 exports.refresh = (req, res, next) => {
     return service.refresh(req.body, req.headers.refresh)
         .then(result => responseHandler.success(res, result, "User refresh successful!", 200))

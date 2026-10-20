@@ -25,6 +25,11 @@ async function checkSubscriptionMiddleware(req, res, next) {
     if (!req.user || !req.user.companyId) {
       return next();
     }
+    // Platform Admin impersonation sessions bypass subscription gating so
+    // support/dev can access accounts whose subscription has expired.
+    if (req.impersonation) {
+      return next();
+    }
     if (isSubscriptionCheckWhitelisted(req)) {
       return next();
     }

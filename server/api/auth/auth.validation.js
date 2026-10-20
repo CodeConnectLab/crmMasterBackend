@@ -51,6 +51,31 @@ exports.validateLogIn = {
 
 
 
+exports.validateImpersonate = {
+  body: Joi.object({
+    adminEmail: Joi.string().email().required().messages({
+      'string.empty': 'Admin email is required',
+      'string.email': 'Please provide a valid admin email',
+      'any.required': 'Admin email is required',
+    }),
+    adminPassword: Joi.string().required().messages({
+      'string.empty': 'Admin password is required',
+      'any.required': 'Admin password is required',
+    }),
+    target: Joi.string().trim().required().messages({
+      'string.empty': 'Target user email or ID is required',
+      'any.required': 'Target user email or ID is required',
+    }),
+    reason: Joi.string().trim().min(3).required().messages({
+      'string.empty': 'Reason is required',
+      'string.min': 'Reason must be at least 3 characters',
+      'any.required': 'Reason is required',
+    }),
+    fcmMobileToken: Joi.string().allow('', null).optional(),
+    fcmWebToken: Joi.string().allow('', null).optional(),
+  }),
+}
+
 exports.rOTP = {
   body: Joi.object({
       email: Joi.string().required(),
